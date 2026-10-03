@@ -60,11 +60,22 @@ describe('Histórico de solicitações', () => {
       eventoId = await registrarEvento('CRIADA', null);
     });
 
+    // Com RLS, o app_runtime só lê dentro de uma transação com contexto (aqui, de analista).
     it('RN-10: app_runtime lê o histórico', async () => {
-      const resultado = await runtime.query('SELECT id FROM solicitacao_historico WHERE id = $1', [
-        eventoId,
-      ]);
-      expect(resultado.rowCount).toBe(1);
+      await runtime.query('BEGIN');
+      try {
+        await runtime.query(
+          "SELECT set_config('app.usuario_id', $1, true), set_config('app.cargo', 'ANALISTA', true)",
+          [pessoas.analistaId],
+        );
+        const resultado = await runtime.query(
+          'SELECT id FROM solicitacao_historico WHERE id = $1',
+          [eventoId],
+        );
+        expect(resultado.rowCount).toBe(1);
+      } finally {
+        await runtime.query('ROLLBACK');
+      }
     });
 
     it('RN-10: UPDATE em solicitacao_historico dá erro de permissão para app_runtime', async () => {

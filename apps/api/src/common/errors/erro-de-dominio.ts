@@ -7,7 +7,12 @@ export type CodigoDeErro =
   | 'CREDENCIAIS_INVALIDAS'
   | 'SESSAO_INVALIDA'
   | 'ACESSO_NEGADO'
-  | 'MUITAS_TENTATIVAS';
+  | 'MUITAS_TENTATIVAS'
+  | 'SOLICITACAO_NAO_ENCONTRADA'
+  | 'SEGREGACAO_DE_FUNCOES'
+  | 'TRANSICAO_INVALIDA'
+  | 'EDICAO_BLOQUEADA'
+  | 'CONFLITO_DE_VERSAO';
 
 /** Erro tipado, sem dependência de Nest ou de HTTP. */
 export abstract class ErroDeDominio extends Error {

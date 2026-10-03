@@ -42,6 +42,11 @@ const ERROS_DE_DOMINIO: Record<CodigoDeErro, { status: number; title: string }> 
   SESSAO_INVALIDA: { status: HttpStatus.UNAUTHORIZED, title: 'Sessão inválida' },
   ACESSO_NEGADO: { status: HttpStatus.FORBIDDEN, title: 'Acesso negado' },
   MUITAS_TENTATIVAS: { status: HttpStatus.TOO_MANY_REQUESTS, title: 'Muitas tentativas' },
+  SOLICITACAO_NAO_ENCONTRADA: { status: HttpStatus.NOT_FOUND, title: 'Solicitação não encontrada' },
+  SEGREGACAO_DE_FUNCOES: { status: HttpStatus.FORBIDDEN, title: 'Segregação de funções' },
+  TRANSICAO_INVALIDA: { status: HttpStatus.CONFLICT, title: 'Transição de status inválida' },
+  EDICAO_BLOQUEADA: { status: HttpStatus.CONFLICT, title: 'Edição bloqueada' },
+  CONFLITO_DE_VERSAO: { status: HttpStatus.CONFLICT, title: 'Conflito de versão' },
 };
 
 function tipoDoDominio(code: CodigoDeErro): TipoDeErro {

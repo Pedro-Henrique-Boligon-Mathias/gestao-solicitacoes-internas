@@ -147,7 +147,10 @@ model SolicitacaoHistorico {
   comentario     String?
   autorId        String             @map("autor_id") @db.Uuid
   dados          Json?
-  criadoEm       DateTime           @default(now()) @map("criado_em") @db.Timestamptz(3)
+  // clock_timestamp(): hora real do INSERT, não do início da transação; em corridas, a linha do
+  // tempo segue a ordem em que os eventos foram gravados. Microssegundos para não empatar eventos
+  // gravados no mesmo milissegundo
+  criadoEm       DateTime           @default(dbgenerated("clock_timestamp()")) @map("criado_em") @db.Timestamptz(6)
 
   solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id], onDelete: Restrict)
   autor       Usuario     @relation(fields: [autorId], references: [id], onDelete: Restrict)
