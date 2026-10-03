@@ -19,7 +19,9 @@
     "next.config.ts",
     "vitest.config.mts",
     "vitest.setup.ts",
+    "playwright.config.ts",
     "src",
+    "e2e",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
