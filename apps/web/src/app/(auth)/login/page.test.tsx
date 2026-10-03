@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentType, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -117,4 +117,109 @@ describe('Tela de login (/login)', () => {
     await screen.findByRole('alert');
     expect(screen.getByRole('button', { name: /entrar/i })).toBeEnabled();
   });
+});
+
+/** Usuários do seed (apps/api/prisma/seed.ts), um por cargo. */
+const USUARIOS_DEMO = [
+  { nome: 'Ana Souza', email: 'ana.souza@demo.test', cargo: /Solicitante/, area: 'Financeiro' },
+  { nome: 'Carla Mendes', email: 'carla.mendes@demo.test', cargo: /Analista/, area: 'Tecnologia' },
+  { nome: 'Diego Alves', email: 'diego.alves@demo.test', cargo: /Admin/, area: 'Tecnologia' },
+] as const;
+
+/** Senha de teste: não é a do .env.example, para provar que vem de SEED_PASSWORD. */
+const SENHA_DEMO = 'Senha-Do-Teste@42';
+
+/** Renderiza a página de novo, lendo as variáveis de ambiente atuais. */
+async function renderizarLoginComAmbiente(demo: string | undefined): Promise<void> {
+  vi.stubEnv('DEMO_MODE', demo);
+  vi.stubEnv('SEED_PASSWORD', SENHA_DEMO);
+  vi.resetModules();
+  await renderizarLogin();
+}
+
+const cardDemo = () => screen.queryByRole('region', { name: /modo demonstração/i });
+
+describe('P1: modo demonstração no login', () => {
+  beforeEach(() => {
+    acoes.entrar.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.clearAllMocks();
+  });
+
+  it('P1: com DEMO_MODE=true, mostra os 3 usuários do seed com cargo e área', async () => {
+    await renderizarLoginComAmbiente('true');
+
+    const card = cardDemo();
+    expect(card).toBeInTheDocument();
+    for (const usuario of USUARIOS_DEMO) {
+      const botao = within(card!).getByRole('button', { name: new RegExp(`Usar ${usuario.nome}`) });
+      expect(botao).toBeInTheDocument();
+      expect(card).toHaveTextContent(usuario.nome);
+    }
+    expect(within(card!).getAllByRole('button', { name: /^Usar / })).toHaveLength(3);
+    expect(card).toHaveTextContent(/Solicitante/);
+    expect(card).toHaveTextContent(/Analista/);
+    expect(card).toHaveTextContent(/Admin/);
+    expect(card).toHaveTextContent('Financeiro');
+    expect(card).toHaveTextContent('Tecnologia');
+  });
+
+  it.each(USUARIOS_DEMO)(
+    'P1: "Usar" de $nome preenche e-mail e senha e põe o foco em "Entrar", sem enviar',
+    async (usuario) => {
+      const pessoa = userEvent.setup();
+      await renderizarLoginComAmbiente('true');
+
+      await pessoa.click(screen.getByRole('button', { name: new RegExp(`Usar ${usuario.nome}`) }));
+
+      expect(screen.getByLabelText('E-mail')).toHaveValue(usuario.email);
+      expect(screen.getByLabelText('Senha')).toHaveValue(SENHA_DEMO);
+      expect(screen.getByRole('button', { name: 'Entrar' })).toHaveFocus();
+      expect(acoes.entrar).not.toHaveBeenCalled();
+    },
+  );
+
+  it('P1: "Usar" de outro usuário troca o e-mail já preenchido', async () => {
+    const pessoa = userEvent.setup();
+    await renderizarLoginComAmbiente('true');
+
+    await pessoa.click(screen.getByRole('button', { name: /Usar Ana Souza/ }));
+    await pessoa.click(screen.getByRole('button', { name: /Usar Diego Alves/ }));
+
+    expect(screen.getByLabelText('E-mail')).toHaveValue('diego.alves@demo.test');
+    expect(screen.getByLabelText('Senha')).toHaveValue(SENHA_DEMO);
+  });
+
+  it('P1: depois de "Usar", "Entrar" envia o e-mail e a senha preenchidos para a action entrar', async () => {
+    acoes.entrar.mockResolvedValue({ erro: 'E-mail ou senha inválidos.' });
+    const pessoa = userEvent.setup();
+    await renderizarLoginComAmbiente('true');
+
+    await pessoa.click(screen.getByRole('button', { name: /Usar Carla Mendes/ }));
+    await pessoa.click(screen.getByRole('button', { name: 'Entrar' }));
+
+    await waitFor(() => expect(acoes.entrar).toHaveBeenCalledTimes(1));
+    const dados = acoes.entrar.mock.calls[0]![1];
+    expect(dados.get('email')).toBe('carla.mendes@demo.test');
+    expect(dados.get('senha')).toBe(SENHA_DEMO);
+  });
+
+  it.each([
+    ['ausente', undefined],
+    ['"false"', 'false'],
+    ['"1"', '1'],
+  ])(
+    'P1: com DEMO_MODE %s, o card não aparece e a senha do seed não está no HTML',
+    async (_nome, valor) => {
+      await renderizarLoginComAmbiente(valor);
+
+      expect(cardDemo()).toBeNull();
+      expect(screen.queryByRole('button', { name: /^Usar / })).toBeNull();
+      expect(document.documentElement.innerHTML).not.toContain(SENHA_DEMO);
+      expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+    },
+  );
 });

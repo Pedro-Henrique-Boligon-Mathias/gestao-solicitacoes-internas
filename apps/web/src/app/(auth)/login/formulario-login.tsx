@@ -1,16 +1,18 @@
 'use client';
 
 import { LoaderCircle } from 'lucide-react';
-import { useActionState, useState } from 'react';
+import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { entrar } from '@/features/auth/actions';
+import { useCamposLogin } from './campos-login';
 
 export function FormularioLogin({ next }: { next: string }) {
   const [estado, acao, enviando] = useActionState(entrar, undefined);
-  // Controlado para não perder o e-mail quando o React limpa o formulário depois da action
-  const [email, setEmail] = useState('');
+  // Controlados para não perder os valores quando o React limpa o formulário depois da action
+  // e para o modo demonstração conseguir preenchê-los
+  const { email, setEmail, senha, setSenha, refEntrar } = useCamposLogin();
   const erro = estado?.erro;
 
   return (
@@ -40,6 +42,8 @@ export function FormularioLogin({ next }: { next: string }) {
           type="password"
           autoComplete="current-password"
           required
+          value={senha}
+          onChange={(evento) => setSenha(evento.target.value)}
           aria-invalid={erro ? true : undefined}
           aria-describedby={erro ? 'erro-login' : undefined}
           className="h-11"
@@ -56,7 +60,7 @@ export function FormularioLogin({ next }: { next: string }) {
         </p>
       ) : null}
 
-      <Button type="submit" size="lg" disabled={enviando}>
+      <Button ref={refEntrar} type="submit" size="lg" disabled={enviando}>
         {enviando ? (
           <>
             <LoaderCircle aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
