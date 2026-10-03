@@ -129,10 +129,8 @@
           },
           "comentario": {
             "description": "Comentário da decisão ou justificativa da reabertura",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
+            "nullable": true,
+            "type": "string"
           },
           "criadoEm": {
             "format": "date-time",

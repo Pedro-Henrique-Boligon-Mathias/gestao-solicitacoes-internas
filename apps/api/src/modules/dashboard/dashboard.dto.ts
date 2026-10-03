@@ -1,4 +1,4 @@
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto } from '../../common/zod/create-zod-dto';
 import { z } from 'zod';
 
 const contagem = z.int().min(0);

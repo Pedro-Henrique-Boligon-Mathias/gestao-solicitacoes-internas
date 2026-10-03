@@ -157,6 +157,13 @@ describe('ADR-001: contrato OpenAPI', () => {
     });
   });
 
+  it('ADR-001: o comentário do evento de histórico é texto ou null, não lista', () => {
+    const comentario = documento.components.schemas.EventoHistoricoDto?.properties?.comentario as
+      { type?: string; nullable?: boolean; items?: unknown } | undefined;
+    expect(comentario).toMatchObject({ type: 'string', nullable: true });
+    expect(comentario).not.toHaveProperty('items');
+  });
+
   it('ADR-001: duas gerações seguidas devolvem a mesma string', async () => {
     await expect(gerarDocumentoOpenApi()).resolves.toBe(gerado);
   });
