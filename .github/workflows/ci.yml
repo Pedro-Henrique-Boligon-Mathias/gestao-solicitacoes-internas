@@ -60,14 +60,24 @@ jobs:
       - name: Subir db, migrations, api e web
         run: docker compose up --build --detach --wait --wait-timeout 600
       - name: API pronta e com banco
-        run: curl --fail --silent --show-error http://localhost:3001/health/ready
-      - name: Web renderiza com a API operando
+        run: curl --fail --silent --show-error http://127.0.0.1:3001/health/ready
+      - name: Login na API com um usuário de demonstração
         run: |
-          pagina=$(curl --fail --silent --show-error http://localhost:3000/)
-          echo "$pagina" | grep -q 'Gestão de Solicitações Internas'
-          if echo "$pagina" | grep -q 'Indisponível'; then
-            echo "A página indica componente indisponível"; exit 1
-          fi
+          curl --fail --silent --show-error --output /dev/null \
+            --header 'Content-Type: application/json' \
+            --data '{"email":"carla.mendes@demo.test","senha":"Demo@2026"}' \
+            http://127.0.0.1:3001/api/v1/auth/login
+      - name: Web mostra o login e protege a área logada
+        run: |
+          pagina=$(curl --fail --silent --show-error http://localhost:3000/login)
+          echo "$pagina" | grep -q 'Entrar'
+          resposta=$(curl --silent --output /dev/null --write-out '%{http_code} %{redirect_url}' \
+            http://localhost:3000/dashboard)
+          echo "/dashboard sem sessão: $resposta"
+          case "$resposta" in
+            30[1278]\ */login*) ;;
+            *) echo "Esperado redirecionamento para /login"; exit 1 ;;
+          esac
       - name: Logs dos containers
         if: failure()
         run: docker compose logs
