@@ -1,4 +1,4 @@
-import { AcessoNegado, EdicaoBloqueada, SegregacaoDeFuncoes } from './erros';
+import { AcessoNegado, EdicaoBloqueada, SegregacaoDeFuncoes, TransicaoInvalida } from './erros';
 import { transicionar, type Comando } from './maquina-de-estados';
 import {
   ACOES,
@@ -89,6 +89,21 @@ function verificarComando(
 }
 
 /**
+ * ADR-010: só o administrador devolve à fila um evento de integração que falhou, e só quando o
+ * evento em foco (o que segura a fila da solicitação) está em FALHOU.
+ */
+function verificarReprocessamento(usuario: UsuarioDominio, solicitacao: SolicitacaoDominio): void {
+  if (usuario.cargo !== 'ADMIN') {
+    throw new AcessoNegado('Só um administrador pode reprocessar a integração.');
+  }
+  if (solicitacao.statusIntegracao !== 'FALHOU') {
+    throw new TransicaoInvalida(
+      'A integração desta solicitação não está com falha; não há o que reprocessar.',
+    );
+  }
+}
+
+/**
  * Lança o erro da primeira regra que bloqueia a ação, nesta ordem: cargo/papel (403) →
  * segregação de funções (403) → status (409) → analista responsável (403). Não faz nada se a ação
  * é permitida. `resultado` só ajusta a mensagem de uma decisão fora de EM_ANALISE.
@@ -101,6 +116,8 @@ export function verificarAcao(
 ): void {
   if (acao === 'EDITAR' || acao === 'EXCLUIR') {
     verificarEdicao(usuario, solicitacao, acao);
+  } else if (acao === 'REPROCESSAR_INTEGRACAO') {
+    verificarReprocessamento(usuario, solicitacao);
   } else {
     verificarComando(usuario, solicitacao, acao, resultado);
   }

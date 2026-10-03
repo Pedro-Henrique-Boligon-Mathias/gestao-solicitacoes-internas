@@ -1,14 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
+import { CONFIGURACAO_INTEGRACAO, type ConfiguracaoIntegracao } from '../../../config/integracao';
 import { Transactional } from '../../../database/transacao';
+import { eventoEmFoco } from '../../integracoes/domain/foco';
+import type { StatusOutbox, TipoEventoIntegracao } from '../../integracoes/domain/tipos';
 import { interpretarCodigo } from '../domain/codigo';
 import { ConflitoDeVersao, SolicitacaoNaoEncontrada, TransicaoInvalida } from '../domain/erros';
 import { transicionar } from '../domain/maquina-de-estados';
 import { acoesPermitidas, verificarAcao } from '../domain/politicas';
 import type { Acao, Cargo, Prioridade, Resultado, Status } from '../domain/tipos';
+import { montarPayload } from './eventos-integracao';
 import {
   RepositorioSolicitacoes,
   type CamposEditaveis,
   type EventoDetalhado,
+  type EventoIntegracao,
   type FiltrosLista,
   type ItemSolicitacao,
   type SolicitacaoDetalhada,
@@ -18,12 +25,37 @@ import {
 /** Quem executa o caso de uso (vem do JwtAuthGuard). */
 export interface Executor {
   id: string;
+  nome: string;
   cargo: Cargo;
   areaId: string;
 }
 
+/**
+ * Situação da integração com o sistema externo (ADR-010). Os campos de topo são do evento em
+ * foco: o mais antigo ainda não enviado (que segura a fila) ou, se todos foram, o mais recente.
+ */
+export interface Integracao {
+  status: StatusOutbox;
+  tipo: TipoEventoIntegracao;
+  tentativas: number;
+  maxTentativas: number;
+  proximaTentativaEm: Date;
+  enviadaEm: Date | null;
+  /** Eventos não enviados atrás do evento em foco. */
+  aguardando: number;
+  /** Todos os eventos, em ordem cronológica. */
+  eventos: EventoIntegracao[];
+}
+
 export interface SolicitacaoComAcoes extends SolicitacaoDetalhada {
+  integracao: Integracao | null;
   acoesPermitidas: Acao[];
+}
+
+/** Solicitação lida com os eventos de integração, que a política usa no reprocessamento. */
+interface SolicitacaoCarregada extends SolicitacaoDetalhada {
+  eventosIntegracao: EventoIntegracao[];
+  statusIntegracao: StatusOutbox | null;
 }
 
 export interface ConsultaLista {
@@ -31,6 +63,7 @@ export interface ConsultaLista {
   status?: Status[];
   prioridade?: Prioridade[];
   analista?: 'eu';
+  area?: string[];
   ordenarPor: FiltrosLista['ordenarPor'];
   direcao: FiltrosLista['direcao'];
   page: number;
@@ -64,7 +97,11 @@ function visaoDe(executor: Executor): Visao {
  */
 @Injectable()
 export class SolicitacoesService {
-  constructor(private readonly repositorio: RepositorioSolicitacoes) {}
+  constructor(
+    private readonly repositorio: RepositorioSolicitacoes,
+    private readonly cls: ClsService,
+    @Inject(CONFIGURACAO_INTEGRACAO) private readonly integracao: ConfiguracaoIntegracao,
+  ) {}
 
   @Transactional()
   async listar(executor: Executor, consulta: ConsultaLista): Promise<Pagina> {
@@ -76,6 +113,7 @@ export class SolicitacoesService {
         status: consulta.status,
         prioridade: consulta.prioridade,
         analistaId: consulta.analista === 'eu' ? executor.id : undefined,
+        areaIds: consulta.area,
         ordenarPor: consulta.ordenarPor,
         direcao: consulta.direcao,
         page: consulta.page,
@@ -252,6 +290,15 @@ export class SolicitacoesService {
       autorId: executor.id,
       dados: null,
     });
+    // RN-14: a aprovação gera o evento para o sistema externo, na mesma transação
+    if (decisao.resultado === 'APROVADA') {
+      await this.registrarEventoIntegracao('SolicitacaoAprovada', agora, atual, {
+        resultado: 'APROVADA',
+        comentario: decisao.comentario,
+        decididoEm: agora,
+        decididoPor: { id: executor.id, nome: executor.nome },
+      });
+    }
     return this.detalharNaTransacao(executor, id);
   }
 
@@ -287,22 +334,109 @@ export class SolicitacoesService {
         },
       },
     });
+    // RN-17: desfazer uma aprovação avisa o sistema externo; reabrir uma rejeitada não
+    if (
+      atual.status === 'APROVADA' &&
+      atual.decisaoComentario !== null &&
+      atual.decididoEm !== null &&
+      atual.decididoPor !== null
+    ) {
+      await this.registrarEventoIntegracao(
+        'SolicitacaoReaberta',
+        agora,
+        atual,
+        {
+          resultado: 'APROVADA',
+          comentario: atual.decisaoComentario,
+          decididoEm: atual.decididoEm,
+          decididoPor: atual.decididoPor,
+        },
+        { justificativa, reabertaEm: agora, reabertaPor: { id: executor.id, nome: executor.nome } },
+      );
+    }
+    return this.detalharNaTransacao(executor, id);
+  }
+
+  /**
+   * ADR-010: o administrador devolve à fila o evento em FALHOU mais antigo, que pela ordem estrita
+   * é o evento em foco. O payload e o id (chave de idempotência) continuam os mesmos.
+   */
+  @Transactional()
+  async reprocessarIntegracao(executor: Executor, id: string): Promise<SolicitacaoComAcoes> {
+    const atual = await this.carregar(executor, id);
+    verificarAcao(executor, atual, 'REPROCESSAR_INTEGRACAO');
+
+    if (!(await this.repositorio.reprocessarIntegracao(id))) {
+      await this.recusarConcorrencia(executor, id, 'REPROCESSAR_INTEGRACAO');
+    }
     return this.detalharNaTransacao(executor, id);
   }
 
   /** Solicitação visível e não excluída, ou 404 (não revela se existe). */
-  private async carregar(executor: Executor, id: string): Promise<SolicitacaoDetalhada> {
+  private async carregar(executor: Executor, id: string): Promise<SolicitacaoCarregada> {
     const solicitacao = UUID.test(id) ? await this.repositorio.buscar(id, visaoDe(executor)) : null;
     if (!solicitacao) throw new SolicitacaoNaoEncontrada();
-    return solicitacao;
+    const eventosIntegracao = await this.repositorio.listarEventosIntegracao(id);
+    return {
+      ...solicitacao,
+      eventosIntegracao,
+      statusIntegracao: eventoEmFoco(eventosIntegracao)?.evento.status ?? null,
+    };
   }
 
   private async detalharNaTransacao(executor: Executor, id: string): Promise<SolicitacaoComAcoes> {
     return this.comAcoes(executor, await this.carregar(executor, id));
   }
 
-  private comAcoes(executor: Executor, solicitacao: SolicitacaoDetalhada): SolicitacaoComAcoes {
-    return { ...solicitacao, acoesPermitidas: acoesPermitidas(executor, solicitacao) };
+  private comAcoes(executor: Executor, carregada: SolicitacaoCarregada): SolicitacaoComAcoes {
+    return {
+      ...carregada,
+      integracao: this.resumirIntegracao(carregada.eventosIntegracao),
+      acoesPermitidas: acoesPermitidas(executor, carregada),
+    };
+  }
+
+  private resumirIntegracao(eventos: EventoIntegracao[]): Integracao | null {
+    const foco = eventoEmFoco(eventos);
+    if (!foco) return null;
+    const { evento, aguardando } = foco;
+    return {
+      status: evento.status,
+      tipo: evento.tipo,
+      tentativas: evento.tentativas,
+      maxTentativas: this.integracao.maxTentativas,
+      proximaTentativaEm: evento.proximaTentativaEm,
+      enviadaEm: evento.enviadoEm,
+      aguardando,
+      eventos,
+    };
+  }
+
+  /** ADR-010: grava o evento na outbox, com o requestId da requisição como correlation id. */
+  private async registrarEventoIntegracao(
+    tipo: TipoEventoIntegracao,
+    ocorridoEm: Date,
+    solicitacao: SolicitacaoDetalhada,
+    decisao: Parameters<typeof montarPayload>[0]['decisao'],
+    reabertura?: Parameters<typeof montarPayload>[0]['reabertura'],
+  ): Promise<void> {
+    const eventoId = randomUUID();
+    const correlationId = this.cls.isActive() ? (this.cls.getId() ?? null) : null;
+    await this.repositorio.registrarEventoIntegracao({
+      id: eventoId,
+      tipo,
+      agregadoId: solicitacao.id,
+      correlationId,
+      payload: montarPayload({
+        id: eventoId,
+        tipo,
+        ocorridoEm,
+        correlationId,
+        solicitacao,
+        decisao,
+        reabertura,
+      }),
+    });
   }
 
   /**

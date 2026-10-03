@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ContextoBanco } from '../../../database/contexto-banco';
 import { Prisma } from '../../../generated/prisma/client';
+import type { TipoEventoIntegracao } from '../../integracoes/domain/tipos';
 import type { Prioridade, Resultado, Status } from '../domain/tipos';
 import {
   RepositorioSolicitacoes,
   type CamposEditaveis,
   type EventoDetalhado,
+  type EventoIntegracao,
+  type NovoEventoIntegracao,
   type FiltrosLista,
   type ItemSolicitacao,
   type NovoEvento,
@@ -130,6 +133,10 @@ export class RepositorioSolicitacoesPrisma extends RepositorioSolicitacoes {
     if (filtros.prioridade?.length) {
       const valores = filtros.prioridade.map((prioridade) => Prisma.sql`${prioridade}::prioridade`);
       condicoes.push(Prisma.sql`s.prioridade IN (${Prisma.join(valores)})`);
+    }
+    if (filtros.areaIds?.length) {
+      const valores = filtros.areaIds.map((areaId) => Prisma.sql`${areaId}::uuid`);
+      condicoes.push(Prisma.sql`s.area_id IN (${Prisma.join(valores)})`);
     }
     if (filtros.analistaId) {
       condicoes.push(Prisma.sql`s.analista_id = ${filtros.analistaId}::uuid`);
@@ -306,5 +313,52 @@ export class RepositorioSolicitacoesPrisma extends RepositorioSolicitacoes {
       tipo: evento.tipo,
       dados: (evento.dados ?? null) as Record<string, unknown> | null,
     }));
+  }
+
+  async listarEventosIntegracao(solicitacaoId: string): Promise<EventoIntegracao[]> {
+    // Só as colunas que o app_runtime pode ler: payload, último erro e correlation id ficam com o
+    // worker. A RLS da outbox herda a visibilidade da solicitação.
+    const eventos = await this.banco.cliente.outboxEvento.findMany({
+      where: { agregadoId: solicitacaoId },
+      orderBy: [{ criadoEm: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        tipo: true,
+        status: true,
+        tentativas: true,
+        proximaTentativaEm: true,
+        criadoEm: true,
+        enviadoEm: true,
+      },
+    });
+    return eventos.map((evento) => ({ ...evento, tipo: evento.tipo as TipoEventoIntegracao }));
+  }
+
+  async registrarEventoIntegracao(evento: NovoEventoIntegracao): Promise<void> {
+    // createMany não pede RETURNING: o app_runtime não lê payload nem correlation_id
+    await this.banco.cliente.outboxEvento.createMany({
+      data: [
+        {
+          id: evento.id,
+          tipo: evento.tipo,
+          agregadoId: evento.agregadoId,
+          payload: evento.payload as Prisma.InputJsonObject,
+          correlationId: evento.correlationId,
+        },
+      ],
+    });
+  }
+
+  async reprocessarIntegracao(solicitacaoId: string): Promise<boolean> {
+    // Condicional a FALHOU: se o worker ou outro administrador mexeu antes, nada muda
+    const afetadas = await this.banco.cliente.$executeRaw`
+      UPDATE outbox_eventos
+         SET status = 'PENDENTE', tentativas = 0, proxima_tentativa_em = clock_timestamp()
+       WHERE status = 'FALHOU'
+         AND id = (SELECT id FROM outbox_eventos
+                    WHERE agregado_id = ${solicitacaoId}::uuid AND status = 'FALHOU'
+                    ORDER BY criado_em, id
+                    LIMIT 1)`;
+    return afetadas === 1;
   }
 }

@@ -1,3 +1,4 @@
+import type { StatusOutbox, TipoEventoIntegracao } from '../../integracoes/domain/tipos';
 import type { Cargo, Prioridade, Resultado, Status } from '../domain/tipos';
 
 export interface Pessoa {
@@ -73,10 +74,33 @@ export interface FiltrosLista {
   prioridade?: Prioridade[];
   /** Só as que têm este usuário como analista responsável. */
   analistaId?: string;
+  /** Só as dessas áreas (área do solicitante na criação). */
+  areaIds?: string[];
   ordenarPor: 'dataSolicitacao' | 'prioridade';
   direcao: 'asc' | 'desc';
   page: number;
   pageSize: number;
+}
+
+/** Evento de integração como a API o enxerga: só as colunas de status, sem o conteúdo. */
+export interface EventoIntegracao {
+  id: string;
+  tipo: TipoEventoIntegracao;
+  status: StatusOutbox;
+  tentativas: number;
+  proximaTentativaEm: Date;
+  criadoEm: Date;
+  enviadoEm: Date | null;
+}
+
+/** Evento gravado na outbox junto com a mudança de status (ADR-010). */
+export interface NovoEventoIntegracao {
+  /** Também é a chave de idempotência do envio e o `id` do payload. */
+  id: string;
+  tipo: TipoEventoIntegracao;
+  agregadoId: string;
+  payload: Record<string, unknown>;
+  correlationId: string | null;
 }
 
 export interface PaginaSolicitacoes {
@@ -125,4 +149,13 @@ export abstract class RepositorioSolicitacoes {
    */
   abstract registrarEvento(evento: NovoEvento): Promise<void>;
   abstract listarHistorico(solicitacaoId: string): Promise<EventoDetalhado[]>;
+  /** Eventos de integração da solicitação, em ordem cronológica. */
+  abstract listarEventosIntegracao(solicitacaoId: string): Promise<EventoIntegracao[]>;
+  /** Grava o evento na outbox, na transação corrente, como PENDENTE e pronto para envio. */
+  abstract registrarEventoIntegracao(evento: NovoEventoIntegracao): Promise<void>;
+  /**
+   * Devolve à fila o evento em FALHOU mais antigo da solicitação (PENDENTE, tentativas 0, próxima
+   * tentativa agora). `false` se não havia evento em FALHOU.
+   */
+  abstract reprocessarIntegracao(solicitacaoId: string): Promise<boolean>;
 }

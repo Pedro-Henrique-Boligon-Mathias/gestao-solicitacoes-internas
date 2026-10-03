@@ -1,5 +1,7 @@
 import { createZodDto } from '../../../common/zod/create-zod-dto';
 import { z } from 'zod';
+import { EXEMPLO } from '../../../openapi/exemplos';
+import { STATUS_OUTBOX, TIPOS_EVENTO_INTEGRACAO } from '../../integracoes/domain/tipos';
 import { ACOES, PRIORIDADES, RESULTADOS, STATUS } from '../domain/tipos';
 
 // Entrada ----------------------------------------------------------------------------------------
@@ -35,18 +37,23 @@ function textoObrigatorio(nome: string): z.ZodString {
 
 // Corpos estritos: status, solicitante, área, data e afins no corpo → 400 (RN-01, RN-03)
 export const criarSolicitacaoSchema = z
-  .strictObject({ titulo, descricao, prioridade })
+  .strictObject({
+    titulo: titulo.meta({ example: EXEMPLO.titulo }),
+    descricao: descricao.meta({ example: EXEMPLO.descricao }),
+    prioridade: prioridade.meta({ example: 'ALTA' }),
+  })
   .describe('Solicitante, área, data e status vêm do servidor e não são aceitos');
 
 export const editarSolicitacaoSchema = z
   .strictObject({
-    titulo: titulo.optional(),
-    descricao: descricao.optional(),
-    prioridade: prioridade.optional(),
+    titulo: titulo.optional().meta({ example: 'Acesso de leitura ao sistema de cobrança' }),
+    descricao: descricao.optional().meta({ example: EXEMPLO.descricao }),
+    prioridade: prioridade.optional().meta({ example: 'MEDIA' }),
     versao: z
       .int('Informe a versão atual da solicitação.')
       .min(1, 'Informe a versão atual da solicitação.')
-      .describe('Versão lida; se outra pessoa alterou antes, a resposta é 409 CONFLITO_DE_VERSAO'),
+      .describe('Versão lida; se outra pessoa alterou antes, a resposta é 409 CONFLITO_DE_VERSAO')
+      .meta({ example: 1 }),
   })
   .refine(
     (corpo) =>
@@ -56,12 +63,14 @@ export const editarSolicitacaoSchema = z
   .describe('Só título, descrição e prioridade; o status muda pelos comandos');
 
 export const decisaoSchema = z.strictObject({
-  resultado: z.enum(RESULTADOS, 'O resultado deve ser APROVADA ou REJEITADA.'),
-  comentario: textoObrigatorio('O comentário'),
+  resultado: z
+    .enum(RESULTADOS, 'O resultado deve ser APROVADA ou REJEITADA.')
+    .meta({ example: 'APROVADA' }),
+  comentario: textoObrigatorio('O comentário').meta({ example: EXEMPLO.comentario }),
 });
 
 export const reaberturaSchema = z.strictObject({
-  justificativa: textoObrigatorio('A justificativa'),
+  justificativa: textoObrigatorio('A justificativa').meta({ example: EXEMPLO.justificativa }),
 });
 
 /** Aceita o parâmetro uma vez (`status=ABERTA`) ou repetido (`status=ABERTA&status=EM_ANALISE`). */
@@ -99,6 +108,11 @@ export const consultaListaSchema = z.object({
     .enum(['eu'], 'O filtro de analista aceita só "eu".')
     .optional()
     .describe('eu: só as que têm o usuário atual como analista responsável'),
+  area: z
+    .union([z.uuid('Área inválida.'), z.array(z.uuid('Área inválida.'))])
+    .transform((recebido) => (Array.isArray(recebido) ? recebido : [recebido]))
+    .optional()
+    .describe('Id da área (UUID); pode repetir: area=<id>&area=<id>'),
   page: z.coerce
     .number()
     .int('A página deve ser um número inteiro.')
@@ -120,24 +134,92 @@ export class ConsultaListaDto extends createZodDto(consultaListaSchema) {}
 
 // Saída ------------------------------------------------------------------------------------------
 
+// Os exemplos de pessoa e área ficam em cada uso (solicitante, analista, área)
 const pessoa = z.object({ id: z.uuid(), nome: z.string() });
 const dataHora = z.iso.datetime();
 
 export const itemListaSchema = z.object({
-  id: z.uuid(),
-  codigo: z.string().describe('Código de exibição, ex.: SOL-000042'),
-  titulo: z.string(),
-  prioridade: z.enum(PRIORIDADES),
-  status: z.enum(STATUS),
-  solicitante: pessoa,
-  area: pessoa.describe('Área do solicitante na criação'),
-  analista: pessoa.nullable().describe('Analista responsável; null até a análise começar'),
-  dataSolicitacao: dataHora,
-  atualizadoEm: dataHora,
+  id: z.uuid().meta({ example: EXEMPLO.solicitacaoId }),
+  codigo: z
+    .string()
+    .describe('Código de exibição, ex.: SOL-000042')
+    .meta({ example: EXEMPLO.codigo }),
+  titulo: z.string().meta({ example: EXEMPLO.titulo }),
+  prioridade: z.enum(PRIORIDADES).meta({ example: 'ALTA' }),
+  status: z.enum(STATUS).meta({ example: 'APROVADA' }),
+  solicitante: pessoa.meta({ example: EXEMPLO.ana }),
+  area: pessoa.describe('Área do solicitante na criação').meta({ example: EXEMPLO.financeiro }),
+  analista: pessoa
+    .nullable()
+    .describe('Analista responsável; null até a análise começar')
+    .meta({ example: EXEMPLO.carla }),
+  dataSolicitacao: dataHora.meta({ example: EXEMPLO.dataSolicitacao }),
+  atualizadoEm: dataHora.meta({ example: EXEMPLO.decididoEm }),
 });
 
+const EXEMPLO_EVENTOS_INTEGRACAO = [
+  {
+    id: EXEMPLO.eventoId,
+    tipo: 'SolicitacaoAprovada',
+    status: 'ENVIADO',
+    tentativas: 2,
+    criadoEm: EXEMPLO.decididoEm,
+    enviadaEm: EXEMPLO.enviadaEm,
+  },
+];
+
+export const eventoIntegracaoSchema = z.object({
+  id: z.uuid().describe('Id do evento (também a chave de idempotência do envio)'),
+  tipo: z.enum(TIPOS_EVENTO_INTEGRACAO),
+  status: z.enum(STATUS_OUTBOX),
+  tentativas: z.int().min(0),
+  criadoEm: dataHora,
+  enviadaEm: dataHora.nullable().describe('null enquanto não for entregue'),
+});
+
+export const integracaoSchema = z
+  .object({
+    status: z
+      .enum(STATUS_OUTBOX)
+      .describe(
+        'Status do evento em foco: o mais antigo ainda não enviado (segura a fila da solicitação) ou, se todos foram enviados, o mais recente',
+      )
+      .meta({ example: 'ENVIADO' }),
+    tipo: z
+      .enum(TIPOS_EVENTO_INTEGRACAO)
+      .describe('Tipo do evento em foco')
+      .meta({ example: 'SolicitacaoAprovada' }),
+    tentativas: z
+      .int()
+      .min(0)
+      .describe('Tentativas já feitas para o evento em foco')
+      .meta({ example: 2 }),
+    maxTentativas: z
+      .int()
+      .min(1)
+      .describe('Limite de tentativas automáticas (depois, FALHOU)')
+      .meta({ example: 8 }),
+    proximaTentativaEm: dataHora
+      .describe('Quando o evento em foco será tentado (relevante só em PENDENTE)')
+      .meta({ example: EXEMPLO.decididoEm }),
+    enviadaEm: dataHora
+      .nullable()
+      .describe('Quando o evento em foco foi entregue; null se ainda não foi')
+      .meta({ example: EXEMPLO.enviadaEm }),
+    aguardando: z
+      .int()
+      .min(0)
+      .describe('Eventos não enviados atrás do evento em foco')
+      .meta({ example: 0 }),
+    eventos: z
+      .array(eventoIntegracaoSchema)
+      .describe('Todos os eventos da solicitação, em ordem cronológica')
+      .meta({ example: EXEMPLO_EVENTOS_INTEGRACAO }),
+  })
+  .describe('Integração com o sistema externo (ADR-010); null se a solicitação não tem evento');
+
 export const solicitacaoSchema = itemListaSchema.extend({
-  descricao: z.string(),
+  descricao: z.string().meta({ example: EXEMPLO.descricao }),
   decisao: z
     .object({
       resultado: z.enum(RESULTADOS),
@@ -146,51 +228,84 @@ export const solicitacaoSchema = itemListaSchema.extend({
       decididoPor: pessoa,
     })
     .nullable()
-    .describe('Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura'),
-  versao: z.int().describe('Envie no PATCH para o controle de concorrência'),
+    .describe('Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura')
+    .meta({
+      example: {
+        resultado: 'APROVADA',
+        comentario: EXEMPLO.comentario,
+        decididoEm: EXEMPLO.decididoEm,
+        decididoPor: EXEMPLO.carla,
+      },
+    }),
+  versao: z.int().describe('Envie no PATCH para o controle de concorrência').meta({ example: 3 }),
   acoesPermitidas: z
     .array(z.enum(ACOES))
-    .describe('O que o usuário atual pode fazer agora; a UI só mostra esses botões'),
+    .describe('O que o usuário atual pode fazer agora; a UI só mostra esses botões')
+    .meta({ example: ['REABRIR'] }),
+  integracao: integracaoSchema.nullable().meta({
+    example: {
+      status: 'ENVIADO',
+      tipo: 'SolicitacaoAprovada',
+      tentativas: 2,
+      maxTentativas: 8,
+      proximaTentativaEm: EXEMPLO.decididoEm,
+      enviadaEm: EXEMPLO.enviadaEm,
+      aguardando: 0,
+      eventos: EXEMPLO_EVENTOS_INTEGRACAO,
+    },
+  }),
 });
 
 export const paginaSolicitacoesSchema = z.object({
   data: z.array(itemListaSchema),
-  meta: z.object({
-    page: z.int(),
-    pageSize: z.int(),
-    total: z.int(),
-    totalPages: z.int().describe('0 quando não há resultados'),
-  }),
+  meta: z
+    .object({
+      page: z.int(),
+      pageSize: z.int(),
+      total: z.int(),
+      totalPages: z.int().describe('0 quando não há resultados'),
+    })
+    .meta({ example: { page: 1, pageSize: 20, total: 42, totalPages: 3 } }),
 });
 
 export const eventoHistoricoSchema = z.object({
-  id: z.uuid(),
-  tipo: z.enum([
-    'CRIADA',
-    'EDITADA',
-    'ANALISE_INICIADA',
-    'APROVADA',
-    'REJEITADA',
-    'REABERTA',
-    'EXCLUIDA',
-  ]),
-  statusAnterior: z.enum(STATUS).nullable(),
-  statusNovo: z.enum(STATUS).nullable().describe('null em eventos que não mudam status (EDITADA)'),
+  id: z.uuid().meta({ example: EXEMPLO.historicoId }),
+  tipo: z
+    .enum([
+      'CRIADA',
+      'EDITADA',
+      'ANALISE_INICIADA',
+      'APROVADA',
+      'REJEITADA',
+      'REABERTA',
+      'EXCLUIDA',
+    ])
+    .meta({ example: 'APROVADA' }),
+  statusAnterior: z.enum(STATUS).nullable().meta({ example: 'EM_ANALISE' }),
+  statusNovo: z
+    .enum(STATUS)
+    .nullable()
+    .describe('null em eventos que não mudam status (EDITADA)')
+    .meta({ example: 'APROVADA' }),
   comentario: z
     .string()
     .nullable()
-    .describe('Comentário da decisão ou justificativa da reabertura'),
-  autor: pessoa,
+    .describe('Comentário da decisão ou justificativa da reabertura')
+    .meta({ example: EXEMPLO.comentario }),
+  autor: pessoa.meta({ example: EXEMPLO.carla }),
   dados: z
     .record(z.string(), z.unknown())
     .nullable()
     .describe(
       'EDITADA: { campo: { antes, depois } }; REABERTA: { decisaoAnterior: { resultado, comentario, decididoEm, decididoPor, analista } }',
-    ),
-  criadoEm: dataHora,
+    )
+    .meta({ example: null }),
+  criadoEm: dataHora.meta({ example: EXEMPLO.decididoEm }),
 });
 
 export class ItemListaDto extends createZodDto(itemListaSchema) {}
 export class SolicitacaoDto extends createZodDto(solicitacaoSchema) {}
 export class PaginaSolicitacoesDto extends createZodDto(paginaSolicitacoesSchema) {}
 export class EventoHistoricoDto extends createZodDto(eventoHistoricoSchema) {}
+
+export type IntegracaoDto = z.infer<typeof integracaoSchema>;
