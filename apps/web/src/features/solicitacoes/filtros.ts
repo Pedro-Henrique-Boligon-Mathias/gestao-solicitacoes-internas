@@ -1,3 +1,4 @@
+import { ehUuid } from './id';
 import { PRIORIDADES, STATUS, type Prioridade, type Status } from './tipos';
 
 export type OrdenarPor = 'dataSolicitacao' | 'prioridade';
@@ -8,6 +9,8 @@ export interface Filtros {
   q?: string;
   status: Status[];
   prioridade: Prioridade[];
+  /** Ids das áreas (UUID); só analista e admin veem o filtro. */
+  area: string[];
   ordenarPor: OrdenarPor;
   direcao: Direcao;
   analista?: 'eu';
@@ -19,6 +22,7 @@ export type ParametrosBusca = URLSearchParams | Record<string, string | string[]
 export const FILTROS_PADRAO: Filtros = {
   status: [],
   prioridade: [],
+  area: [],
   ordenarPor: 'dataSolicitacao',
   direcao: 'desc',
   page: 1,
@@ -44,6 +48,7 @@ export function lerFiltros(params: ParametrosBusca): Filtros {
     ...FILTROS_PADRAO,
     status: somenteValidos(todos(params, 'status'), STATUS),
     prioridade: somenteValidos(todos(params, 'prioridade'), PRIORIDADES),
+    area: [...new Set(todos(params, 'area').filter(ehUuid))],
   };
 
   const q = primeiro(params, 'q')?.trim();
@@ -67,6 +72,7 @@ export function montarQuery(filtros: Filtros): string {
   if (q && q.length >= 2) params.set('q', q);
   for (const status of filtros.status) params.append('status', status);
   for (const prioridade of filtros.prioridade) params.append('prioridade', prioridade);
+  for (const area of filtros.area) params.append('area', area);
   if (filtros.ordenarPor !== FILTROS_PADRAO.ordenarPor)
     params.set('ordenarPor', filtros.ordenarPor);
   if (filtros.direcao !== FILTROS_PADRAO.direcao) params.set('direcao', filtros.direcao);
@@ -81,9 +87,13 @@ export function urlDaLista(filtros: Filtros): string {
   return query ? `/solicitacoes?${query}` : '/solicitacoes';
 }
 
-/** Há algum filtro que restringe o resultado (busca, status, prioridade ou analista)? */
+/** Há algum filtro que restringe o resultado (busca, status, prioridade, área ou analista)? */
 export function temFiltroAtivo(filtros: Filtros): boolean {
   return Boolean(
-    filtros.q || filtros.status.length || filtros.prioridade.length || filtros.analista,
+    filtros.q ||
+    filtros.status.length ||
+    filtros.prioridade.length ||
+    filtros.area.length ||
+    filtros.analista,
   );
 }

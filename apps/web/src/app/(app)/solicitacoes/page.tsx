@@ -4,7 +4,7 @@ import { EstadoErro } from '@/components/estado-erro';
 import { BarraFiltros } from '@/components/solicitacoes/barra-filtros';
 import { BotaoNovaSolicitacao } from '@/components/solicitacoes/botao-nova-solicitacao';
 import { ListaSolicitacoes } from '@/components/solicitacoes/lista-solicitacoes';
-import { listarSolicitacoes, obterResumo } from '@/features/solicitacoes/consultas';
+import { listarAreas, listarSolicitacoes, obterResumo } from '@/features/solicitacoes/consultas';
 import { lerFiltros, temFiltroAtivo } from '@/features/solicitacoes/filtros';
 import { obterUsuarioAtual } from '@/lib/api/autenticado';
 
@@ -15,9 +15,16 @@ export default async function PaginaSolicitacoes({ searchParams }: PageProps<'/s
   const sessao = await obterUsuarioAtual();
   if (!sessao.autenticado) redirect('/api/sessao/encerrar');
   const { usuario } = sessao;
-  const filtros = lerFiltros(await searchParams);
+  // RF-02: o filtro por área é de quem analisa; para o solicitante, ?area= na URL é ignorado
+  const filtraPorArea = usuario.cargo !== 'SOLICITANTE';
+  const lidos = lerFiltros(await searchParams);
+  const filtros = filtraPorArea ? lidos : { ...lidos, area: [] };
 
-  const [pagina, resumo] = await Promise.all([listarSolicitacoes(filtros), obterResumo()]);
+  const [pagina, resumo, areas] = await Promise.all([
+    listarSolicitacoes(filtros),
+    obterResumo(),
+    filtraPorArea ? listarAreas() : undefined,
+  ]);
   const total = pagina.ok ? pagina.dados.meta.total : undefined;
 
   return (
@@ -39,7 +46,14 @@ export default async function PaginaSolicitacoes({ searchParams }: PageProps<'/s
         </div>
       </div>
 
-      {resumo.ok && <BarraFiltros filtros={filtros} resumo={resumo.dados} />}
+      {resumo.ok && (
+        <BarraFiltros
+          filtros={filtros}
+          resumo={resumo.dados}
+          // Se as áreas não carregarem, só a linha de área some
+          areas={areas?.ok ? areas.dados : undefined}
+        />
+      )}
 
       {pagina.ok ? (
         <ListaSolicitacoes pagina={pagina.dados} filtros={filtros} usuario={usuario} />

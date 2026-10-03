@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { paramsComoObjeto } from '@/test/dom';
-import { lerFiltros, montarQuery } from './filtros';
+import { lerFiltros, montarQuery, temFiltroAtivo } from './filtros';
 
 const PADRAO = {
   status: [],
   prioridade: [],
+  area: [],
   ordenarPor: 'dataSolicitacao',
   direcao: 'desc',
   page: 1,
 };
+
+const AREA_FINANCEIRO = 'a0000000-0000-4000-8000-000000000001';
+const AREA_TECNOLOGIA = 'a0000000-0000-4000-8000-000000000002';
 
 /** Parâmetros gerados por montarQuery, como objeto (aceita com ou sem "?" na frente). */
 const query = (texto: string) => paramsComoObjeto(new URLSearchParams(texto.replace(/^\?/, '')));
@@ -24,6 +28,7 @@ describe('RF-02: lerFiltros (estado da lista na URL)', () => {
         q: 'acesso',
         status: ['ABERTA', 'EM_ANALISE'],
         prioridade: 'ALTA',
+        area: AREA_FINANCEIRO,
         ordenarPor: 'prioridade',
         direcao: 'asc',
         analista: 'eu',
@@ -33,6 +38,7 @@ describe('RF-02: lerFiltros (estado da lista na URL)', () => {
       q: 'acesso',
       status: ['ABERTA', 'EM_ANALISE'],
       prioridade: ['ALTA'],
+      area: [AREA_FINANCEIRO],
       ordenarPor: 'prioridade',
       direcao: 'asc',
       analista: 'eu',
@@ -93,6 +99,7 @@ describe('RF-02: montarQuery (filtros → URL)', () => {
       q: 'acesso',
       status: ['ABERTA', 'EM_ANALISE'],
       prioridade: ['ALTA', 'BAIXA'],
+      area: [],
       ordenarPor: 'dataSolicitacao',
       direcao: 'asc',
       page: 2,
@@ -119,6 +126,7 @@ describe('RF-02: montarQuery (filtros → URL)', () => {
         q: 'SOL-000042',
         status: ['EM_ANALISE'],
         prioridade: ['MEDIA', 'ALTA'],
+        area: [AREA_FINANCEIRO, AREA_TECNOLOGIA],
         ordenarPor: 'prioridade',
         direcao: 'asc',
         analista: 'eu',
@@ -130,5 +138,50 @@ describe('RF-02: montarQuery (filtros → URL)', () => {
     expect(lerFiltros(new URLSearchParams(montarQuery(filtros).replace(/^\?/, '')))).toEqual(
       filtros,
     );
+  });
+});
+
+describe('RF-02: filtro por área na URL', () => {
+  it('RF-02: lê ?area= repetido da URL (lado do cliente e do servidor)', () => {
+    const params = new URLSearchParams(`area=${AREA_FINANCEIRO}&area=${AREA_TECNOLOGIA}`);
+    expect(lerFiltros(params).area).toEqual([AREA_FINANCEIRO, AREA_TECNOLOGIA]);
+    expect(lerFiltros({ area: [AREA_FINANCEIRO, AREA_TECNOLOGIA] }).area).toEqual([
+      AREA_FINANCEIRO,
+      AREA_TECNOLOGIA,
+    ]);
+    expect(lerFiltros({ area: AREA_TECNOLOGIA }).area).toEqual([AREA_TECNOLOGIA]);
+  });
+
+  it('RF-02: descarta valores de área que não são UUID, mantendo os válidos', () => {
+    expect(
+      lerFiltros({
+        area: [
+          'Financeiro',
+          AREA_FINANCEIRO,
+          '123',
+          '',
+          'a0000000000040008000000000000001',
+          'a0000000-0000-4000-8000-00000000000z',
+          `${AREA_TECNOLOGIA}x`,
+        ],
+      }).area,
+    ).toEqual([AREA_FINANCEIRO]);
+  });
+
+  it('RF-02: sem ?area=, a lista de áreas fica vazia', () => {
+    expect(lerFiltros(new URLSearchParams('status=ABERTA')).area).toEqual([]);
+  });
+
+  it('RF-02: montarQuery repete ?area= para cada área escolhida', () => {
+    const texto = montarQuery({ ...lerFiltros({}), area: [AREA_FINANCEIRO, AREA_TECNOLOGIA] });
+
+    const params = new URLSearchParams(texto.replace(/^\?/, ''));
+    expect(params.getAll('area')).toEqual([AREA_FINANCEIRO, AREA_TECNOLOGIA]);
+    expect(query(texto)).toEqual({ area: [AREA_FINANCEIRO, AREA_TECNOLOGIA] });
+  });
+
+  it('RF-02: área escolhida conta como filtro ativo', () => {
+    expect(temFiltroAtivo(lerFiltros({}))).toBe(false);
+    expect(temFiltroAtivo(lerFiltros({ area: AREA_FINANCEIRO }))).toBe(true);
   });
 });

@@ -16,6 +16,7 @@ import { ROTULO_PRIORIDADE, ROTULO_STATUS_PLURAL } from '@/features/solicitacoes
 import {
   PRIORIDADES,
   STATUS,
+  type Area,
   type Prioridade,
   type ResumoDashboard,
   type Status,
@@ -42,8 +43,17 @@ const alternar = <T,>(lista: T[], valor: T): T[] =>
 /**
  * Filtros da lista: tudo fica na URL (router.replace) e a página renderiza no servidor.
  * A busca espera 300 ms sem digitar; qualquer mudança volta para a página 1.
+ * `areas` só vem para quem pode filtrar por área; sem ela (ou vazia), a linha não aparece.
  */
-export function BarraFiltros({ filtros, resumo }: { filtros: Filtros; resumo: ResumoDashboard }) {
+export function BarraFiltros({
+  filtros,
+  resumo,
+  areas,
+}: {
+  filtros: Filtros;
+  resumo: ResumoDashboard;
+  areas?: Area[];
+}) {
   const router = useRouter();
   const id = useId();
   const [texto, setTexto] = useState(filtros.q ?? '');
@@ -137,6 +147,7 @@ export function BarraFiltros({ filtros, resumo }: { filtros: Filtros; resumo: Re
                 q: undefined,
                 status: [],
                 prioridade: [],
+                area: [],
                 analista: undefined,
               });
             }}
@@ -174,6 +185,19 @@ export function BarraFiltros({ filtros, resumo }: { filtros: Filtros; resumo: Re
             </Chip>
           ))}
         </GrupoChips>
+        {areas && areas.length > 0 && (
+          <GrupoChips rotulo="Área">
+            {areas.map((area) => (
+              <Chip
+                key={area.id}
+                ativo={filtros.area.includes(area.id)}
+                onClick={() => navegar({ ...filtros, area: alternar(filtros.area, area.id) })}
+              >
+                {area.nome}
+              </Chip>
+            ))}
+          </GrupoChips>
+        )}
       </div>
     </section>
   );
@@ -202,7 +226,8 @@ function Chip({
   children,
 }: {
   ativo: boolean;
-  total: number;
+  /** Quantas há nessa opção; os chips de área não têm (o resumo não conta por área). */
+  total?: number;
   icone?: ReactNode;
   onClick: () => void;
   children: ReactNode;
@@ -222,14 +247,16 @@ function Chip({
     >
       {icone}
       {children}
-      <span
-        className={cn(
-          'font-mono text-[11.5px] tabular-nums',
-          ativo ? 'opacity-85' : 'text-muted-foreground',
-        )}
-      >
-        {total}
-      </span>
+      {total !== undefined && (
+        <span
+          className={cn(
+            'font-mono text-[11.5px] tabular-nums',
+            ativo ? 'opacity-85' : 'text-muted-foreground',
+          )}
+        >
+          {total}
+        </span>
+      )}
     </button>
   );
 }

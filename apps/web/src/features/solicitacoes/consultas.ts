@@ -2,8 +2,15 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { criarClienteApiAutenticado } from '@/lib/api/autenticado';
+import { criarClienteApi } from '@/lib/api/client';
 import type { Filtros } from './filtros';
-import type { EventoHistorico, PaginaSolicitacoes, ResumoDashboard, Solicitacao } from './tipos';
+import type {
+  Area,
+  EventoHistorico,
+  PaginaSolicitacoes,
+  ResumoDashboard,
+  Solicitacao,
+} from './tipos';
 
 const TEMPO_LIMITE_MS = 10_000;
 
@@ -63,6 +70,7 @@ export function listarSolicitacoes(
     q: filtros.q,
     status: filtros.status?.length ? filtros.status : undefined,
     prioridade: filtros.prioridade?.length ? filtros.prioridade : undefined,
+    area: filtros.area?.length ? filtros.area : undefined,
     ordenarPor: filtros.ordenarPor,
     direcao: filtros.direcao,
     analista: filtros.analista,
@@ -84,4 +92,30 @@ export function historicoSolicitacao(id: string): Promise<Consulta<EventoHistori
   return consultar((cliente, opcoes) =>
     cliente.GET('/api/v1/solicitacoes/{id}/historico', { params: { path: { id } }, ...opcoes }),
   );
+}
+
+/** Áreas iguais para todos: revalidadas a cada hora ou pela tag `areas`. */
+const CACHE_AREAS = { tags: ['areas'], revalidate: 3600 };
+
+/**
+ * Áreas ativas, em ordem de nome. Rota pública e resposta igual para todos: é o único dado em
+ * cache do app (ADR-012), por isso vai sem token, sem cookie e sem X-Request-Id (os cabeçalhos
+ * entram na chave do cache do Next). Uma falha não derruba a página: quem chama só deixa de
+ * mostrar o filtro.
+ */
+export async function listarAreas(): Promise<Consulta<Area[]>> {
+  try {
+    const { data, error, response } = await criarClienteApi().GET('/api/v1/areas', {
+      signal: AbortSignal.timeout(TEMPO_LIMITE_MS),
+      // Refaz a chamada só com a URL: o cache do Next lê `next` do init do fetch
+      fetch: (requisicao: Request) =>
+        fetch(requisicao.url, { signal: requisicao.signal, next: CACHE_AREAS }),
+    });
+    if (response.ok && data) return { ok: true, dados: data };
+    const corpo = (error ?? {}) as { requestId?: string };
+    const requestId = corpo.requestId ?? response.headers.get('X-Request-Id') ?? undefined;
+    return { ok: false, status: response.status, ...(requestId ? { requestId } : {}) };
+  } catch {
+    return { ok: false, status: 0 };
+  }
 }
