@@ -4,6 +4,74 @@
  */
 
 export interface paths {
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Autentica e abre uma sessão */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Encerra a sessão (revoga a família inteira) */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Usuário autenticado, com a área */
+        get: operations["usuarioAtual"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Troca o refresh token por um novo par */
+        post: operations["renovarSessao"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -42,6 +110,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        LoginDto: {
+            /** @description Aceita maiúsculas e espaços nas pontas (normalizado antes da busca) */
+            email: string;
+            senha: string;
+        };
         /** @description Erro no formato RFC 9457 (application/problem+json) */
         ProblemDetails: {
             /** @description Código estável para o front (ex.: NAO_ENCONTRADO) */
@@ -63,6 +136,9 @@ export interface components {
             /** Format: uri */
             type: string;
         };
+        RefreshDto: {
+            refreshToken: string;
+        };
         RespostaProntidaoDto: {
             details: {
                 database: {
@@ -73,9 +149,51 @@ export interface components {
             /** @enum {string} */
             status: "ok" | "error";
         };
+        RespostaSessaoDto: {
+            /**
+             * Format: date-time
+             * @description Fim da validade do access token (UTC)
+             */
+            accessExpiraEm: string;
+            /** @description JWT (HS256) para o header Authorization: Bearer */
+            accessToken: string;
+            /**
+             * Format: date-time
+             * @description Fim da validade do refresh token (UTC)
+             */
+            refreshExpiraEm: string;
+            /** @description Token opaco, de uso único, para POST /auth/refresh */
+            refreshToken: string;
+            usuario: {
+                area: {
+                    /** Format: uuid */
+                    id: string;
+                    nome: string;
+                };
+                /** @enum {string} */
+                cargo: "SOLICITANTE" | "ANALISTA" | "ADMIN";
+                email: string;
+                /** Format: uuid */
+                id: string;
+                nome: string;
+            };
+        };
         RespostaVivacidadeDto: {
             /** @enum {string} */
             status: "ok";
+        };
+        UsuarioAtualDto: {
+            area: {
+                /** Format: uuid */
+                id: string;
+                nome: string;
+            };
+            /** @enum {string} */
+            cargo: "SOLICITANTE" | "ANALISTA" | "ADMIN";
+            email: string;
+            /** Format: uuid */
+            id: string;
+            nome: string;
         };
     };
     responses: never;
@@ -86,6 +204,164 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginDto"];
+            };
+        };
+        responses: {
+            /** @description Sessão aberta */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespostaSessaoDto"];
+                };
+            };
+            /** @description Corpo inválido (DADOS_INVALIDOS) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description E-mail ou senha inválidos (CREDENCIAIS_INVALIDAS) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Mais de 5 tentativas por minuto para o mesmo e-mail (MUITAS_TENTATIVAS) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sessão encerrada */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem token, token inválido ou sessão já encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    usuarioAtual: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usuário atual */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsuarioAtualDto"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    renovarSessao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshDto"];
+            };
+        };
+        responses: {
+            /** @description Novo par de tokens */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RespostaSessaoDto"];
+                };
+            };
+            /** @description Corpo inválido (DADOS_INVALIDOS) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Refresh token desconhecido, expirado, revogado ou reusado (SESSAO_INVALIDA) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Mais de 5 renovações por minuto com o mesmo refresh token (MUITAS_TENTATIVAS) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     vivacidade: {
         parameters: {
             query?: never;
