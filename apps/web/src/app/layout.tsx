@@ -1,6 +1,26 @@
 import type { Metadata } from 'next';
+import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { ProvedorTema } from '@/components/provedor-tema';
+import { cn } from '@/lib/utils';
 import './globals.css';
+
+// Cada fonte vira uma variável CSS lida pelos tokens --font-display, --font-sans e --font-mono
+const fonteDisplay = Bricolage_Grotesque({
+  subsets: ['latin'],
+  weight: ['500', '600'],
+  variable: '--fonte-display',
+});
+const fonteSans = Instrument_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--fonte-sans',
+});
+const fonteMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--fonte-mono',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -12,8 +32,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR">
-      <body className="font-sans">{children}</body>
+    // O next-themes ajusta a classe do <html> antes da hidratação
+    <html
+      lang="pt-BR"
+      suppressHydrationWarning
+      className={cn(fonteDisplay.variable, fonteSans.variable, fonteMono.variable)}
+    >
+      <body>
+        <ProvedorTema>{children}</ProvedorTema>
+      </body>
     </html>
   );
 }

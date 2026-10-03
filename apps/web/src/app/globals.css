@@ -1,16 +1,183 @@
 @import 'tailwindcss';
 
-@theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --color-marca-50: #ecfdf3;
-  --color-marca-600: #16803c;
-  --color-marca-700: #126a32;
+/* O tema escuro vem da classe .dark no <html>, aplicada pelo next-themes. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Identidade visual Marinho: tokens do tema claro. As fontes vêm do next/font (layout.tsx). */
+:root {
+  color-scheme: light;
+  --primary: #14213d;
+  --primary-foreground: #ffffff;
+  --brand-orange: #fca311;
+  --brand-orange-strong: #b86e00;
+  --hero: #14213d;
+  --hero-foreground: #ffffff;
+  --hero-muted: #aeb8cc;
+  --background: #eef1f6;
+  --card: #ffffff;
+  --tile: #ffffff;
+  --muted: #eef1f6;
+  --foreground: #0e1626;
+  --muted-foreground: #4b5670;
+  --border: #dfe3eb;
+  --input: #7d879a;
+  --accent: #e8ecf4;
+  --accent-foreground: #14213d;
+  --link: #2a4a8c;
+  --ring: #14213d;
+  --status-aberta-bg: #eaf1fe;
+  --status-aberta-fg: #1d4ed8;
+  --status-aberta-dot: #2563eb;
+  --status-analise-bg: #fef3c7;
+  --status-analise-fg: #92400e;
+  --status-analise-dot: #d97706;
+  --status-aprovada-bg: #dcfce7;
+  --status-aprovada-fg: #166534;
+  --status-aprovada-dot: #16a34a;
+  --status-rejeitada-bg: #fee2e2;
+  --status-rejeitada-fg: #991b1b;
+  --status-rejeitada-dot: #dc2626;
+  --priority-baixa: #4b5563;
+  --priority-media: #854d0e;
+  --priority-alta: #9a3412;
+  --chart-alta: #14213d;
+  --chart-media: #14213d;
+  --chart-baixa: #14213d;
+  --chart-alta-muted: #b7c2d6;
+  --chart-media-muted: #b7c2d6;
+  --chart-baixa-muted: #b7c2d6;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --warning-bg: #fef3c7;
+  --warning-fg: #92400e;
+  --scrim: rgba(14, 22, 38, 0.45);
+  --radius-pill: 999px;
+  --radius-card: 22px;
+  --radius-inner: 16px;
+  --radius-row: 14px;
+  --radius-field: 12px;
+  --font-display:
+    var(--fonte-display), 'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif;
+  --font-sans: var(--fonte-sans), 'Instrument Sans', system-ui, sans-serif;
+  --font-mono: var(--fonte-mono), 'JetBrains Mono', ui-monospace, monospace;
 }
 
-:root {
-  color-scheme: light dark;
+/* Tema escuro: só as cores mudam; raios e fontes são os mesmos. */
+.dark {
+  color-scheme: dark;
+  --primary: #a9bceb;
+  --primary-foreground: #0a1120;
+  --brand-orange: #fca311;
+  --brand-orange-strong: #fca311;
+  --hero: #1f3462;
+  --hero-foreground: #ffffff;
+  --hero-muted: #b9c4db;
+  --background: #070d19;
+  --card: #111b30;
+  --tile: #16223d;
+  --muted: #18233b;
+  --foreground: #e8ecf3;
+  --muted-foreground: #9aa6bc;
+  --border: #22304d;
+  --input: #5d6b86;
+  --accent: #1b2a4c;
+  --accent-foreground: #c9d5f2;
+  --link: #a9bceb;
+  --ring: #a9bceb;
+  --status-aberta-bg: #172340;
+  --status-aberta-fg: #93b4fd;
+  --status-aberta-dot: #60a5fa;
+  --status-analise-bg: #33260a;
+  --status-analise-fg: #fcd34d;
+  --status-analise-dot: #f59e0b;
+  --status-aprovada-bg: #0f2a1b;
+  --status-aprovada-fg: #86efac;
+  --status-aprovada-dot: #22c55e;
+  --status-rejeitada-bg: #361414;
+  --status-rejeitada-fg: #fca5a5;
+  --status-rejeitada-dot: #ef4444;
+  --priority-baixa: #a1a1aa;
+  --priority-media: #fde047;
+  --priority-alta: #fdba74;
+  --chart-alta: #fb923c;
+  --chart-media: #facc15;
+  --chart-baixa: #a1a1aa;
+  --chart-alta-muted: #fb923c;
+  --chart-media-muted: #facc15;
+  --chart-baixa-muted: #a1a1aa;
+  --destructive: #f87171;
+  --destructive-foreground: #1a0a0a;
+  --warning-bg: #33260a;
+  --warning-fg: #fcd34d;
+  --scrim: rgba(0, 0, 0, 0.6);
+}
+
+/* Expõe os tokens como utilitários do Tailwind (bg-primary, text-status-aberta-fg, rounded-card...). */
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-strong: var(--brand-orange-strong);
+  --color-hero: var(--hero);
+  --color-hero-foreground: var(--hero-foreground);
+  --color-hero-muted: var(--hero-muted);
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-tile: var(--tile);
+  --color-muted: var(--muted);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-link: var(--link);
+  --color-ring: var(--ring);
+  --color-status-aberta-bg: var(--status-aberta-bg);
+  --color-status-aberta-fg: var(--status-aberta-fg);
+  --color-status-aberta-dot: var(--status-aberta-dot);
+  --color-status-analise-bg: var(--status-analise-bg);
+  --color-status-analise-fg: var(--status-analise-fg);
+  --color-status-analise-dot: var(--status-analise-dot);
+  --color-status-aprovada-bg: var(--status-aprovada-bg);
+  --color-status-aprovada-fg: var(--status-aprovada-fg);
+  --color-status-aprovada-dot: var(--status-aprovada-dot);
+  --color-status-rejeitada-bg: var(--status-rejeitada-bg);
+  --color-status-rejeitada-fg: var(--status-rejeitada-fg);
+  --color-status-rejeitada-dot: var(--status-rejeitada-dot);
+  --color-priority-baixa: var(--priority-baixa);
+  --color-priority-media: var(--priority-media);
+  --color-priority-alta: var(--priority-alta);
+  --color-chart-alta: var(--chart-alta);
+  --color-chart-media: var(--chart-media);
+  --color-chart-baixa: var(--chart-baixa);
+  --color-chart-alta-muted: var(--chart-alta-muted);
+  --color-chart-media-muted: var(--chart-media-muted);
+  --color-chart-baixa-muted: var(--chart-baixa-muted);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-fg: var(--warning-fg);
+  --color-scrim: var(--scrim);
+  --radius-pill: var(--radius-pill);
+  --radius-card: var(--radius-card);
+  --radius-inner: var(--radius-inner);
+  --radius-row: var(--radius-row);
+  --radius-field: var(--radius-field);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 body {
-  @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+  @apply bg-background text-foreground font-sans antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
 }

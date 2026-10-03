@@ -1,12 +1,19 @@
+import { cn } from '@/lib/utils';
+
 export type Estado = 'ok' | 'falha';
 
-const ESTILOS: Record<Estado, { ponto: string; texto: string; rotulo: string }> = {
+// Selo com fundo, ponto e texto: o estado nunca depende só da cor
+const ESTILOS: Record<Estado, { selo: string; ponto: string; rotulo: string }> = {
   ok: {
-    ponto: 'bg-emerald-500',
-    texto: 'text-emerald-700 dark:text-emerald-400',
+    selo: 'bg-status-aprovada-bg text-status-aprovada-fg',
+    ponto: 'bg-status-aprovada-dot',
     rotulo: 'Operando',
   },
-  falha: { ponto: 'bg-red-500', texto: 'text-red-700 dark:text-red-400', rotulo: 'Indisponível' },
+  falha: {
+    selo: 'bg-status-rejeitada-bg text-status-rejeitada-fg',
+    ponto: 'bg-status-rejeitada-dot',
+    rotulo: 'Indisponível',
+  },
 };
 
 export function IndicadorStatus({
@@ -20,13 +27,18 @@ export function IndicadorStatus({
 }) {
   const estilo = ESTILOS[estado];
   return (
-    <li className="flex items-start justify-between gap-4 py-3">
-      <div>
-        <p className="font-medium">{componente}</p>
-        {detalhe ? <p className="text-sm text-zinc-500 dark:text-zinc-400">{detalhe}</p> : null}
+    <li className="flex min-h-13 items-center justify-between gap-4 py-3">
+      <div className="flex flex-col gap-0.5">
+        <p className="text-sm font-medium">{componente}</p>
+        {detalhe ? <p className="text-muted-foreground text-[12.5px]">{detalhe}</p> : null}
       </div>
-      <span className={`flex shrink-0 items-center gap-2 text-sm font-medium ${estilo.texto}`}>
-        <span aria-hidden="true" className={`size-2.5 rounded-full ${estilo.ponto}`} />
+      <span
+        className={cn(
+          'rounded-pill inline-flex h-6 shrink-0 items-center gap-1.5 px-2.5 text-xs font-medium',
+          estilo.selo,
+        )}
+      >
+        <span aria-hidden="true" className={cn('size-1.5 rounded-full', estilo.ponto)} />
         {estilo.rotulo}
       </span>
     </li>
