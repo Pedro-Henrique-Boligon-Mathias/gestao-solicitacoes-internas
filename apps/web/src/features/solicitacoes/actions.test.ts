@@ -178,6 +178,16 @@ const CASOS: {
     sucesso: 200,
     devolveSolicitacao: true,
   },
+  {
+    // ADR-010: o Admin devolve para a fila o evento de integração que falhou
+    nome: 'reprocessarIntegracao',
+    chamar: (a) => a.reprocessarIntegracao(ID),
+    metodo: 'POST',
+    caminho: `/api/v1/solicitacoes/${ID}/integracao/reprocessamento`,
+    corpo: null,
+    sucesso: 200,
+    devolveSolicitacao: true,
+  },
 ];
 
 describe('Server Actions das solicitações', () => {
@@ -367,6 +377,7 @@ describe('Server Actions das solicitações', () => {
         chamar: (a, id) =>
           a.reabrirSolicitacao(id, { justificativa: 'Decisão tomada com dados errados.' }),
       },
+      { nome: 'reprocessarIntegracao', chamar: (a, id) => a.reprocessarIntegracao(id) },
     ];
 
     const IDS_INVALIDOS: { descricao: string; id: unknown }[] = [

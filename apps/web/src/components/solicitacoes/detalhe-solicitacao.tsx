@@ -2,11 +2,13 @@ import { ChevronLeft, CircleCheck, CircleX } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { UsuarioAtual } from '@/features/auth/usuario';
+import { acoesDaBarra } from '@/features/solicitacoes/acoes';
 import { formatarData } from '@/features/solicitacoes/datas';
 import { ROTULO_STATUS } from '@/features/solicitacoes/rotulos';
 import type { EventoHistorico, Solicitacao } from '@/features/solicitacoes/tipos';
 import { cn } from '@/lib/utils';
 import { AcoesSolicitacao } from './acoes-solicitacao';
+import { BlocoIntegracao } from './bloco-integracao';
 import { CodigoSolicitacao } from './codigo-solicitacao';
 import { LinhaDoTempo } from './linha-do-tempo';
 import { SeloPrioridade } from './selo-prioridade';
@@ -22,7 +24,10 @@ function inicioDaAnalise(historico: EventoHistorico[]): string | undefined {
   return historico.findLast((evento) => evento.tipo === 'ANALISE_INICIADA')?.criadoEm;
 }
 
-/** Detalhe da solicitação: cabeçalho com ações, faixa do responsável, decisão, dados e histórico. */
+/**
+ * Detalhe da solicitação: cabeçalho com ações, faixa do responsável, decisão, integração, dados e
+ * histórico.
+ */
 export function DetalheSolicitacao({
   solicitacao,
   historico,
@@ -35,7 +40,7 @@ export function DetalheSolicitacao({
   const comVoce = solicitacao.status === 'EM_ANALISE' && solicitacao.analista?.id === usuario.id;
   const desde = comVoce ? (inicioDaAnalise(historico) ?? solicitacao.atualizadoEm) : undefined;
   const { decisao } = solicitacao;
-  const temAcoes = solicitacao.acoesPermitidas.length > 0;
+  const temAcoes = acoesDaBarra(solicitacao).length > 0;
 
   return (
     <div className={cn('flex flex-col gap-4 max-[760px]:gap-3', temAcoes && 'max-[760px]:pb-20')}>
@@ -127,6 +132,8 @@ export function DetalheSolicitacao({
             </section>
           )}
 
+          <BlocoIntegracao solicitacao={solicitacao} />
+
           <section
             aria-labelledby="titulo-descricao"
             className="bg-card rounded-card flex flex-col gap-4 p-5"
@@ -164,7 +171,7 @@ export function DetalheSolicitacao({
           >
             Histórico
           </h2>
-          <LinhaDoTempo eventos={historico} />
+          <LinhaDoTempo eventos={historico} eventosIntegracao={solicitacao.integracao?.eventos} />
         </section>
       </div>
     </div>

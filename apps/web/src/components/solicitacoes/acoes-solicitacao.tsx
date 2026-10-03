@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { UsuarioAtual } from '@/features/auth/usuario';
+import { acoesDaBarra } from '@/features/solicitacoes/acoes';
 import { excluirSolicitacao, iniciarAnalise } from '@/features/solicitacoes/actions';
 import type { ResultadoDecisao, Solicitacao } from '@/features/solicitacoes/tipos';
 import { cn } from '@/lib/utils';
@@ -23,7 +24,8 @@ import { ModalReabertura } from './modal-reabertura';
 type Modal = 'editar' | 'excluir' | 'decidir' | 'reabrir' | null;
 
 /**
- * Ações do detalhe. Só aparecem os botões que vierem em `acoesPermitidas` (a API decide).
+ * Ações do detalhe. Só aparecem os botões que vierem em `acoesPermitidas` (a API decide); o
+ * reprocessamento da integração fica no bloco Integração.
  * À direita do título no desktop; abaixo de 760px, numa barra fixa no rodapé.
  */
 export function AcoesSolicitacao({
@@ -40,10 +42,10 @@ export function AcoesSolicitacao({
   const [resultadoInicial, setResultadoInicial] = useState<ResultadoDecisao>();
   const [iniciando, iniciarTransicao] = useTransition();
   const [excluindo, excluirTransicao] = useTransition();
-  const pode = (acao: Solicitacao['acoesPermitidas'][number]) =>
-    solicitacao.acoesPermitidas.includes(acao);
+  const acoes = acoesDaBarra(solicitacao);
+  const pode = (acao: Solicitacao['acoesPermitidas'][number]) => acoes.includes(acao);
 
-  if (solicitacao.acoesPermitidas.length === 0) return null;
+  if (acoes.length === 0) return null;
 
   const fecharSe = (aberto: boolean) => {
     if (!aberto) setModal(null);

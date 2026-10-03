@@ -15,7 +15,40 @@ export type Resumo = Schemas['ResumoDto'];
 export type Evento = Schemas['EventoHistoricoDto'];
 export type Status = Solicitacao['status'];
 export type Prioridade = Solicitacao['prioridade'];
-export type Acao = Solicitacao['acoesPermitidas'][number];
+export type Acao = Solicitacao['acoesPermitidas'][number] | 'REPROCESSAR_INTEGRACAO';
+
+/**
+ * Integração com o sistema externo no detalhe (ADR-010), no formato do contrato da API. Fixado
+ * aqui para os testes não dependerem de quando o schema.d.ts for regenerado.
+ */
+export type StatusIntegracao = 'PENDENTE' | 'ENVIADO' | 'FALHOU';
+export type TipoEventoIntegracao = 'SolicitacaoAprovada' | 'SolicitacaoReaberta';
+export interface EventoIntegracao {
+  id: string;
+  tipo: TipoEventoIntegracao;
+  status: StatusIntegracao;
+  tentativas: number;
+  criadoEm: string;
+  enviadaEm: string | null;
+}
+/** Campos de topo: os do evento em foco (o mais antigo ainda não enviado; senão, o mais recente). */
+export interface Integracao {
+  status: StatusIntegracao;
+  tipo: TipoEventoIntegracao;
+  tentativas: number;
+  maxTentativas: number;
+  proximaTentativaEm: string;
+  enviadaEm: string | null;
+  /** Eventos não enviados depois do evento em foco. */
+  aguardando: number;
+  eventos: EventoIntegracao[];
+}
+
+/** Campos que os testes podem sobrescrever numa solicitação (inclui a integração). */
+export type ParcialSolicitacao = Omit<Partial<Solicitacao>, 'acoesPermitidas'> & {
+  acoesPermitidas?: Acao[];
+  integracao?: Integracao | null;
+};
 
 export const ANA: Usuario = {
   id: '6a1f0c2e-0000-4000-8000-000000000001',
@@ -43,7 +76,7 @@ export const DIEGO: Usuario = {
 
 export const pessoa = (usuario: Usuario) => ({ id: usuario.id, nome: usuario.nome });
 
-export function solicitacao(parcial: Partial<Solicitacao> = {}): Solicitacao {
+export function solicitacao(parcial: ParcialSolicitacao = {}): Solicitacao {
   return {
     id: 'c0000000-0000-4000-8000-000000000042',
     codigo: 'SOL-000042',
@@ -59,6 +92,43 @@ export function solicitacao(parcial: Partial<Solicitacao> = {}): Solicitacao {
     atualizadoEm: '2026-10-01T13:00:00.000Z',
     versao: 1,
     acoesPermitidas: [],
+    integracao: null,
+    ...parcial,
+  } as Solicitacao;
+}
+
+export function eventoIntegracao(parcial: Partial<EventoIntegracao> = {}): EventoIntegracao {
+  return {
+    id: crypto.randomUUID(),
+    tipo: 'SolicitacaoAprovada',
+    status: 'PENDENTE',
+    tentativas: 0,
+    criadoEm: '2026-10-02T18:00:00.000Z',
+    enviadaEm: null,
+    ...parcial,
+  };
+}
+
+/** Integração com um único evento, coerente com o status informado (padrão: PENDENTE). */
+export function integracao(parcial: Partial<Integracao> = {}): Integracao {
+  const status = parcial.status ?? 'PENDENTE';
+  const tipo = parcial.tipo ?? 'SolicitacaoAprovada';
+  const tentativas = parcial.tentativas ?? 0;
+  const enviadaEm =
+    parcial.enviadaEm !== undefined
+      ? parcial.enviadaEm
+      : status === 'ENVIADO'
+        ? '2026-10-02T18:01:00.000Z'
+        : null;
+  return {
+    status,
+    tipo,
+    tentativas,
+    maxTentativas: 8,
+    proximaTentativaEm: '2026-10-02T18:05:00.000Z',
+    enviadaEm,
+    aguardando: 0,
+    eventos: [eventoIntegracao({ tipo, status, tentativas, enviadaEm })],
     ...parcial,
   };
 }

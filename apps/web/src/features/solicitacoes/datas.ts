@@ -54,6 +54,29 @@ export function formatarRelativo(iso: string, agora: Date = new Date()): string 
   return 'agora há pouco';
 }
 
+const SEGUNDO = 1_000;
+
+/**
+ * Tempo relativo no futuro, arredondado para baixo: "em 30 segundos", "em 5 minutos", "em 2
+ * horas". Uma data que já passou (ou falta menos de um segundo) vira "em instantes".
+ */
+export function formatarFuturo(iso: string, agora: Date = new Date()): string {
+  const diferenca = new Date(iso).getTime() - agora.getTime();
+  if (diferenca < SEGUNDO) return 'em instantes';
+  const unidades: [number, Intl.RelativeTimeFormatUnit][] = [
+    [ANO, 'year'],
+    [MES, 'month'],
+    [DIA, 'day'],
+    [HORA, 'hour'],
+    [MINUTO, 'minute'],
+    [SEGUNDO, 'second'],
+  ];
+  for (const [tamanho, unidade] of unidades) {
+    if (diferenca >= tamanho) return relativo.format(Math.floor(diferenca / tamanho), unidade);
+  }
+  return 'em instantes';
+}
+
 /** Duração curta até agora, para o card de destaque: "8d", "5h", "12min". */
 export function formatarEspera(iso: string, agora: Date = new Date()): string {
   const diferenca = Math.max(0, agora.getTime() - new Date(iso).getTime());

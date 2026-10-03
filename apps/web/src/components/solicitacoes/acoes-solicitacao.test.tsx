@@ -27,6 +27,7 @@ const acoes = vi.hoisted(() => ({
   iniciarAnalise: vi.fn(),
   decidirSolicitacao: vi.fn(),
   reabrirSolicitacao: vi.fn(),
+  reprocessarIntegracao: vi.fn(),
 }));
 vi.mock('@/features/solicitacoes/actions', () => acoes);
 
@@ -65,6 +66,11 @@ describe('Ações do detalhe conforme acoesPermitidas', () => {
     ['RN-04: analista com ABERTA', ['INICIAR_ANALISE'], ['Iniciar análise']],
     ['RN-05: responsável com EM_ANALISE', ['DECIDIR'], ['Aprovar', 'Rejeitar']],
     ['RN-16: administrador com decidida', ['REABRIR'], ['Reabrir']],
+    [
+      'ADR-010: o reprocessamento fica no bloco Integração, não na barra de ações',
+      ['REABRIR', 'REPROCESSAR_INTEGRACAO'],
+      ['Reabrir'],
+    ],
   ])('%s → %j mostra exatamente %j', (_caso, permitidas, botoes) => {
     renderizar(permitidas);
     expect(nomesDosBotoes()).toEqual([...botoes].sort());

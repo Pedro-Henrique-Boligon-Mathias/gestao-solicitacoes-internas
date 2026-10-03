@@ -28,6 +28,7 @@ const acoes = vi.hoisted(() => ({
   iniciarAnalise: vi.fn(),
   decidirSolicitacao: vi.fn(),
   reabrirSolicitacao: vi.fn(),
+  reprocessarIntegracao: vi.fn(),
 }));
 vi.mock('@/features/solicitacoes/actions', () => acoes);
 

@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Áreas ativas, em ordem de nome */
+        /** Áreas ativas, em ordem de nome (pública) */
         get: operations["listarAreas"];
         put?: never;
         post?: never;
@@ -194,6 +194,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/solicitacoes/{id}/integracao/reprocessamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Devolve à fila o evento de integração em FALHOU mais antigo (PENDENTE, tentativas zeradas); administrador */
+        post: operations["reprocessarIntegracao"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/solicitacoes/{id}/reabertura": {
         parameters: {
             query?: never;
@@ -250,99 +267,202 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         AreaDto: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @example 1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28
+             */
             id: string;
+            /** @example Financeiro */
             nome: string;
         };
         /** @description Solicitante, área, data e status vêm do servidor e não são aceitos */
         CriarSolicitacaoDto: {
-            /** @description 10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim */
+            /**
+             * @description 10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim
+             * @example Preciso de acesso de leitura ao módulo de cobrança para conciliar os boletos do mês.
+             */
             descricao: string;
-            /** @enum {string} */
+            /**
+             * @example ALTA
+             * @enum {string}
+             */
             prioridade: "BAIXA" | "MEDIA" | "ALTA";
-            /** @description 5 a 120 caracteres, sem contar os espaços nas pontas */
+            /**
+             * @description 5 a 120 caracteres, sem contar os espaços nas pontas
+             * @example Acesso ao sistema de cobrança
+             */
             titulo: string;
         };
         DecisaoDto: {
+            /** @example Acesso liberado conforme a política de perfis de leitura. */
             comentario: string;
-            /** @enum {string} */
+            /**
+             * @example APROVADA
+             * @enum {string}
+             */
             resultado: "APROVADA" | "REJEITADA";
         };
         /** @description Só título, descrição e prioridade; o status muda pelos comandos */
         EditarSolicitacaoDto: {
-            /** @description 10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim */
+            /**
+             * @description 10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim
+             * @example Preciso de acesso de leitura ao módulo de cobrança para conciliar os boletos do mês.
+             */
             descricao?: string;
-            /** @enum {string} */
+            /**
+             * @example MEDIA
+             * @enum {string}
+             */
             prioridade?: "BAIXA" | "MEDIA" | "ALTA";
-            /** @description 5 a 120 caracteres, sem contar os espaços nas pontas */
+            /**
+             * @description 5 a 120 caracteres, sem contar os espaços nas pontas
+             * @example Acesso de leitura ao sistema de cobrança
+             */
             titulo?: string;
-            /** @description Versão lida; se outra pessoa alterou antes, a resposta é 409 CONFLITO_DE_VERSAO */
+            /**
+             * @description Versão lida; se outra pessoa alterou antes, a resposta é 409 CONFLITO_DE_VERSAO
+             * @example 1
+             */
             versao: number;
         };
         EventoHistoricoDto: {
+            /**
+             * @example {
+             *       "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+             *       "nome": "Carla Mendes"
+             *     }
+             */
             autor: {
                 /** Format: uuid */
                 id: string;
                 nome: string;
             };
-            /** @description Comentário da decisão ou justificativa da reabertura */
+            /**
+             * @description Comentário da decisão ou justificativa da reabertura
+             * @example Acesso liberado conforme a política de perfis de leitura.
+             */
             comentario: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @example 2026-10-03T10:12:00.000Z
+             */
             criadoEm: string;
-            /** @description EDITADA: { campo: { antes, depois } }; REABERTA: { decisaoAnterior: { resultado, comentario, decididoEm, decididoPor, analista } } */
+            /**
+             * @description EDITADA: { campo: { antes, depois } }; REABERTA: { decisaoAnterior: { resultado, comentario, decididoEm, decididoPor, analista } }
+             * @example null
+             */
             dados: {
                 [key: string]: unknown;
             } | null;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @example c7e1a9d3-5b2f-4c86-9e0a-4d6f8b2c1e57
+             */
             id: string;
-            /** @enum {string|null} */
+            /**
+             * @example EM_ANALISE
+             * @enum {string|null}
+             */
             statusAnterior: "ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA" | null;
             /**
              * @description null em eventos que não mudam status (EDITADA)
+             * @example APROVADA
              * @enum {string|null}
              */
             statusNovo: "ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA" | null;
-            /** @enum {string} */
+            /**
+             * @example APROVADA
+             * @enum {string}
+             */
             tipo: "CRIADA" | "EDITADA" | "ANALISE_INICIADA" | "APROVADA" | "REJEITADA" | "REABERTA" | "EXCLUIDA";
         };
         LoginDto: {
-            /** @description Aceita maiúsculas e espaços nas pontas (normalizado antes da busca) */
+            /**
+             * @description Aceita maiúsculas e espaços nas pontas (normalizado antes da busca)
+             * @example ana.souza@demo.test
+             */
             email: string;
+            /** @example Demo@2026 */
             senha: string;
         };
         PaginaSolicitacoesDto: {
             data: {
-                /** @description Analista responsável; null até a análise começar */
+                /**
+                 * @description Analista responsável; null até a análise começar
+                 * @example {
+                 *       "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+                 *       "nome": "Carla Mendes"
+                 *     }
+                 */
                 analista: {
                     /** Format: uuid */
                     id: string;
                     nome: string;
                 } | null;
-                /** @description Área do solicitante na criação */
+                /**
+                 * @description Área do solicitante na criação
+                 * @example {
+                 *       "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+                 *       "nome": "Financeiro"
+                 *     }
+                 */
                 area: {
                     /** Format: uuid */
                     id: string;
                     nome: string;
                 };
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @example 2026-10-03T10:12:00.000Z
+                 */
                 atualizadoEm: string;
-                /** @description Código de exibição, ex.: SOL-000042 */
+                /**
+                 * @description Código de exibição, ex.: SOL-000042
+                 * @example SOL-000042
+                 */
                 codigo: string;
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @example 2026-10-02T13:45:00.000Z
+                 */
                 dataSolicitacao: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @example 0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10
+                 */
                 id: string;
-                /** @enum {string} */
+                /**
+                 * @example ALTA
+                 * @enum {string}
+                 */
                 prioridade: "BAIXA" | "MEDIA" | "ALTA";
+                /**
+                 * @example {
+                 *       "id": "3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92",
+                 *       "nome": "Ana Souza"
+                 *     }
+                 */
                 solicitante: {
                     /** Format: uuid */
                     id: string;
                     nome: string;
                 };
-                /** @enum {string} */
+                /**
+                 * @example APROVADA
+                 * @enum {string}
+                 */
                 status: "ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA";
+                /** @example Acesso ao sistema de cobrança */
                 titulo: string;
             }[];
+            /**
+             * @example {
+             *       "page": 1,
+             *       "pageSize": 20,
+             *       "total": 42,
+             *       "totalPages": 3
+             *     }
+             */
             meta: {
                 page: number;
                 pageSize: number;
@@ -353,124 +473,259 @@ export interface components {
         };
         /** @description Erro no formato RFC 9457 (application/problem+json) */
         ProblemDetails: {
-            /** @description Código estável para o front (ex.: NAO_ENCONTRADO) */
+            /**
+             * @description Código estável para o front (ex.: NAO_ENCONTRADO)
+             * @example TRANSICAO_INVALIDA
+             */
             code: string;
-            /** @description Ausente em erros 5xx */
+            /**
+             * @description Ausente em erros 5xx
+             * @example Uma solicitação com status Aberta não pode ser aprovada. Inicie a análise primeiro.
+             */
             detail?: string;
-            /** @description Erros por campo (DADOS_INVALIDOS) */
+            /**
+             * @description Erros por campo (DADOS_INVALIDOS)
+             * @example [
+             *       {
+             *         "campo": "titulo",
+             *         "mensagem": "O título deve ter pelo menos 5 caracteres."
+             *       }
+             *     ]
+             */
             errors?: {
                 /** @description Caminho do campo, com "." nos aninhados (ex.: item.quantidade) */
                 campo: string;
                 mensagem: string;
             }[];
-            /** @description Caminho da requisição */
+            /**
+             * @description Caminho da requisição
+             * @example /api/v1/solicitacoes/0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10/decisao
+             */
             instance: string;
-            /** @description Mesmo valor do header X-Request-Id */
+            /**
+             * @description Mesmo valor do header X-Request-Id
+             * @example f3c1a2b4-6d8e-4f0a-9b1c-3e5d7f9a2b46
+             */
             requestId?: string;
+            /** @example 409 */
             status: number;
+            /** @example Transição de status inválida */
             title: string;
-            /** Format: uri */
+            /**
+             * Format: uri
+             * @example https://solicitacoes.local/erros/transicao-invalida
+             */
             type: string;
         };
         ReaberturaDto: {
+            /** @example A aprovação considerou o perfil errado; precisa de nova análise. */
             justificativa: string;
         };
         RefreshDto: {
+            /** @example q9fV3kz8Lw1mT0rB6yHc2pNs5uXa7dGe4jQiOtRlUvW */
             refreshToken: string;
         };
         RespostaProntidaoDto: {
+            /**
+             * @example {
+             *       "database": {
+             *         "status": "up"
+             *       }
+             *     }
+             */
             details: {
                 database: {
                     /** @enum {string} */
                     status: "up" | "down";
                 };
             };
-            /** @enum {string} */
+            /**
+             * @example ok
+             * @enum {string}
+             */
             status: "ok" | "error";
         };
         RespostaSessaoDto: {
             /**
              * Format: date-time
              * @description Fim da validade do access token (UTC)
+             * @example 2026-10-03T13:15:00.000Z
              */
             accessExpiraEm: string;
-            /** @description JWT (HS256) para o header Authorization: Bearer */
+            /**
+             * @description JWT (HS256) para o header Authorization: Bearer
+             * @example eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIuLi4ifQ.assinatura
+             */
             accessToken: string;
             /**
              * Format: date-time
              * @description Fim da validade do refresh token (UTC)
+             * @example 2026-10-10T13:00:00.000Z
              */
             refreshExpiraEm: string;
-            /** @description Token opaco, de uso único, para POST /auth/refresh */
+            /**
+             * @description Token opaco, de uso único, para POST /auth/refresh
+             * @example q9fV3kz8Lw1mT0rB6yHc2pNs5uXa7dGe4jQiOtRlUvW
+             */
             refreshToken: string;
+            /**
+             * @example {
+             *       "area": {
+             *         "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+             *         "nome": "Financeiro"
+             *       },
+             *       "cargo": "SOLICITANTE",
+             *       "email": "ana.souza@demo.test",
+             *       "id": "3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92",
+             *       "nome": "Ana Souza"
+             *     }
+             */
             usuario: {
+                /**
+                 * @example {
+                 *       "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+                 *       "nome": "Financeiro"
+                 *     }
+                 */
                 area: {
                     /** Format: uuid */
                     id: string;
                     nome: string;
                 };
-                /** @enum {string} */
+                /**
+                 * @example SOLICITANTE
+                 * @enum {string}
+                 */
                 cargo: "SOLICITANTE" | "ANALISTA" | "ADMIN";
+                /** @example ana.souza@demo.test */
                 email: string;
-                /** Format: uuid */
+                /**
+                 * Format: uuid
+                 * @example 3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92
+                 */
                 id: string;
+                /** @example Ana Souza */
                 nome: string;
             };
         };
         RespostaVivacidadeDto: {
-            /** @enum {string} */
+            /**
+             * @example ok
+             * @enum {string}
+             */
             status: "ok";
         };
         ResumoDto: {
             /**
              * Format: date-time
              * @description dataSolicitacao da ABERTA mais antiga no escopo, ou null
+             * @example 2026-09-20T09:00:00.000Z
              */
             aberturaMaisAntiga: string | null;
             /**
              * @description GERAL para analista e administrador; PROPRIAS para o solicitante
+             * @example GERAL
              * @enum {string}
              */
             escopo: "GERAL" | "PROPRIAS";
-            /** @description ABERTA de prioridade ALTA no escopo */
+            /**
+             * @description ABERTA de prioridade ALTA no escopo
+             * @example 3
+             */
             filaAlta: number;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @example 2026-10-03T10:15:00.000Z
+             */
             geradoEm: string;
+            /**
+             * @example {
+             *       "ALTA": 10,
+             *       "BAIXA": 12,
+             *       "MEDIA": 20
+             *     }
+             */
             porPrioridade: {
                 ALTA: number;
                 BAIXA: number;
                 MEDIA: number;
             };
+            /**
+             * @example {
+             *       "ABERTA": 10,
+             *       "APROVADA": 18,
+             *       "EM_ANALISE": 7,
+             *       "REJEITADA": 7
+             *     }
+             */
             porStatus: {
                 ABERTA: number;
                 APROVADA: number;
                 EM_ANALISE: number;
                 REJEITADA: number;
             };
+            /** @example 42 */
             total: number;
         };
         SolicitacaoDto: {
-            /** @description O que o usuário atual pode fazer agora; a UI só mostra esses botões */
-            acoesPermitidas: ("EDITAR" | "EXCLUIR" | "INICIAR_ANALISE" | "DECIDIR" | "REABRIR")[];
-            /** @description Analista responsável; null até a análise começar */
+            /**
+             * @description O que o usuário atual pode fazer agora; a UI só mostra esses botões
+             * @example [
+             *       "REABRIR"
+             *     ]
+             */
+            acoesPermitidas: ("EDITAR" | "EXCLUIR" | "INICIAR_ANALISE" | "DECIDIR" | "REABRIR" | "REPROCESSAR_INTEGRACAO")[];
+            /**
+             * @description Analista responsável; null até a análise começar
+             * @example {
+             *       "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+             *       "nome": "Carla Mendes"
+             *     }
+             */
             analista: {
                 /** Format: uuid */
                 id: string;
                 nome: string;
             } | null;
-            /** @description Área do solicitante na criação */
+            /**
+             * @description Área do solicitante na criação
+             * @example {
+             *       "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+             *       "nome": "Financeiro"
+             *     }
+             */
             area: {
                 /** Format: uuid */
                 id: string;
                 nome: string;
             };
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @example 2026-10-03T10:12:00.000Z
+             */
             atualizadoEm: string;
-            /** @description Código de exibição, ex.: SOL-000042 */
+            /**
+             * @description Código de exibição, ex.: SOL-000042
+             * @example SOL-000042
+             */
             codigo: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @example 2026-10-02T13:45:00.000Z
+             */
             dataSolicitacao: string;
-            /** @description Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura */
+            /**
+             * @description Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura
+             * @example {
+             *       "comentario": "Acesso liberado conforme a política de perfis de leitura.",
+             *       "decididoEm": "2026-10-03T10:12:00.000Z",
+             *       "decididoPor": {
+             *         "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+             *         "nome": "Carla Mendes"
+             *       },
+             *       "resultado": "APROVADA"
+             *     }
+             */
             decisao: {
                 comentario: string;
                 /** Format: date-time */
@@ -483,33 +738,162 @@ export interface components {
                 /** @enum {string} */
                 resultado: "APROVADA" | "REJEITADA";
             } | null;
+            /** @example Preciso de acesso de leitura ao módulo de cobrança para conciliar os boletos do mês. */
             descricao: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @example 0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10
+             */
             id: string;
-            /** @enum {string} */
+            /**
+             * @description Integração com o sistema externo (ADR-010); null se a solicitação não tem evento
+             * @example {
+             *       "aguardando": 0,
+             *       "enviadaEm": "2026-10-03T10:12:07.000Z",
+             *       "eventos": [
+             *         {
+             *           "criadoEm": "2026-10-03T10:12:00.000Z",
+             *           "enviadaEm": "2026-10-03T10:12:07.000Z",
+             *           "id": "5f1d7c2a-8b3e-4a69-b0d4-2e9c6a1f7d38",
+             *           "status": "ENVIADO",
+             *           "tentativas": 2,
+             *           "tipo": "SolicitacaoAprovada"
+             *         }
+             *       ],
+             *       "maxTentativas": 8,
+             *       "proximaTentativaEm": "2026-10-03T10:12:00.000Z",
+             *       "status": "ENVIADO",
+             *       "tentativas": 2,
+             *       "tipo": "SolicitacaoAprovada"
+             *     }
+             */
+            integracao: {
+                /**
+                 * @description Eventos não enviados atrás do evento em foco
+                 * @example 0
+                 */
+                aguardando: number;
+                /**
+                 * Format: date-time
+                 * @description Quando o evento em foco foi entregue; null se ainda não foi
+                 * @example 2026-10-03T10:12:07.000Z
+                 */
+                enviadaEm: string | null;
+                /**
+                 * @description Todos os eventos da solicitação, em ordem cronológica
+                 * @example [
+                 *       {
+                 *         "criadoEm": "2026-10-03T10:12:00.000Z",
+                 *         "enviadaEm": "2026-10-03T10:12:07.000Z",
+                 *         "id": "5f1d7c2a-8b3e-4a69-b0d4-2e9c6a1f7d38",
+                 *         "status": "ENVIADO",
+                 *         "tentativas": 2,
+                 *         "tipo": "SolicitacaoAprovada"
+                 *       }
+                 *     ]
+                 */
+                eventos: {
+                    /** Format: date-time */
+                    criadoEm: string;
+                    /**
+                     * Format: date-time
+                     * @description null enquanto não for entregue
+                     */
+                    enviadaEm: string | null;
+                    /**
+                     * Format: uuid
+                     * @description Id do evento (também a chave de idempotência do envio)
+                     */
+                    id: string;
+                    /** @enum {string} */
+                    status: "PENDENTE" | "ENVIADO" | "FALHOU";
+                    tentativas: number;
+                    /** @enum {string} */
+                    tipo: "SolicitacaoAprovada" | "SolicitacaoReaberta";
+                }[];
+                /**
+                 * @description Limite de tentativas automáticas (depois, FALHOU)
+                 * @example 8
+                 */
+                maxTentativas: number;
+                /**
+                 * Format: date-time
+                 * @description Quando o evento em foco será tentado (relevante só em PENDENTE)
+                 * @example 2026-10-03T10:12:00.000Z
+                 */
+                proximaTentativaEm: string;
+                /**
+                 * @description Status do evento em foco: o mais antigo ainda não enviado (segura a fila da solicitação) ou, se todos foram enviados, o mais recente
+                 * @example ENVIADO
+                 * @enum {string}
+                 */
+                status: "PENDENTE" | "ENVIADO" | "FALHOU";
+                /**
+                 * @description Tentativas já feitas para o evento em foco
+                 * @example 2
+                 */
+                tentativas: number;
+                /**
+                 * @description Tipo do evento em foco
+                 * @example SolicitacaoAprovada
+                 * @enum {string}
+                 */
+                tipo: "SolicitacaoAprovada" | "SolicitacaoReaberta";
+            } | null;
+            /**
+             * @example ALTA
+             * @enum {string}
+             */
             prioridade: "BAIXA" | "MEDIA" | "ALTA";
+            /**
+             * @example {
+             *       "id": "3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92",
+             *       "nome": "Ana Souza"
+             *     }
+             */
             solicitante: {
                 /** Format: uuid */
                 id: string;
                 nome: string;
             };
-            /** @enum {string} */
+            /**
+             * @example APROVADA
+             * @enum {string}
+             */
             status: "ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA";
+            /** @example Acesso ao sistema de cobrança */
             titulo: string;
-            /** @description Envie no PATCH para o controle de concorrência */
+            /**
+             * @description Envie no PATCH para o controle de concorrência
+             * @example 3
+             */
             versao: number;
         };
         UsuarioAtualDto: {
+            /**
+             * @example {
+             *       "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+             *       "nome": "Financeiro"
+             *     }
+             */
             area: {
                 /** Format: uuid */
                 id: string;
                 nome: string;
             };
-            /** @enum {string} */
+            /**
+             * @example SOLICITANTE
+             * @enum {string}
+             */
             cargo: "SOLICITANTE" | "ANALISTA" | "ADMIN";
+            /** @example ana.souza@demo.test */
             email: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @example 3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92
+             */
             id: string;
+            /** @example Ana Souza */
             nome: string;
         };
     };
@@ -537,15 +921,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AreaDto"][];
-                };
-            };
-            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
@@ -749,6 +1124,8 @@ export interface operations {
                 direcao?: "asc" | "desc";
                 /** @description eu: só as que têm o usuário atual como analista responsável */
                 analista?: "eu";
+                /** @description Id da área (UUID); pode repetir: area=<id>&area=<id> */
+                area?: string | string[];
                 page?: number;
                 pageSize?: number;
             };
@@ -1158,6 +1535,64 @@ export interface operations {
             };
             /** @description Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    reprocessarIntegracao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitação com a integração pendente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolicitacaoDto"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não é administrador (ACESSO_NEGADO) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description A integração não está em FALHOU (TRANSICAO_INVALIDA) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
