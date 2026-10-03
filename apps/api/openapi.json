@@ -1,6 +1,206 @@
 {
   "components": {
     "schemas": {
+      "AreaDto": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nome"
+        ],
+        "type": "object"
+      },
+      "CriarSolicitacaoDto": {
+        "additionalProperties": false,
+        "description": "Solicitante, área, data e status vêm do servidor e não são aceitos",
+        "properties": {
+          "descricao": {
+            "description": "10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim",
+            "maxLength": 5000,
+            "minLength": 10,
+            "type": "string"
+          },
+          "prioridade": {
+            "enum": [
+              "BAIXA",
+              "MEDIA",
+              "ALTA"
+            ],
+            "type": "string"
+          },
+          "titulo": {
+            "description": "5 a 120 caracteres, sem contar os espaços nas pontas",
+            "maxLength": 120,
+            "minLength": 5,
+            "type": "string"
+          }
+        },
+        "required": [
+          "titulo",
+          "descricao",
+          "prioridade"
+        ],
+        "type": "object"
+      },
+      "DecisaoDto": {
+        "additionalProperties": false,
+        "properties": {
+          "comentario": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "type": "string"
+          },
+          "resultado": {
+            "enum": [
+              "APROVADA",
+              "REJEITADA"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "resultado",
+          "comentario"
+        ],
+        "type": "object"
+      },
+      "EditarSolicitacaoDto": {
+        "additionalProperties": false,
+        "description": "Só título, descrição e prioridade; o status muda pelos comandos",
+        "properties": {
+          "descricao": {
+            "description": "10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim",
+            "maxLength": 5000,
+            "minLength": 10,
+            "type": "string"
+          },
+          "prioridade": {
+            "enum": [
+              "BAIXA",
+              "MEDIA",
+              "ALTA"
+            ],
+            "type": "string"
+          },
+          "titulo": {
+            "description": "5 a 120 caracteres, sem contar os espaços nas pontas",
+            "maxLength": 120,
+            "minLength": 5,
+            "type": "string"
+          },
+          "versao": {
+            "description": "Versão lida; se outra pessoa alterou antes, a resposta é 409 CONFLITO_DE_VERSAO",
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "versao"
+        ],
+        "type": "object"
+      },
+      "EventoHistoricoDto": {
+        "properties": {
+          "autor": {
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "nome": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "nome"
+            ],
+            "type": "object"
+          },
+          "comentario": {
+            "description": "Comentário da decisão ou justificativa da reabertura",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "criadoEm": {
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          },
+          "dados": {
+            "additionalProperties": {},
+            "description": "EDITADA: { campo: { antes, depois } }; REABERTA: { decisaoAnterior: { resultado, comentario, decididoEm, decididoPor, analista } }",
+            "nullable": true,
+            "propertyNames": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "type": "string"
+          },
+          "statusAnterior": {
+            "enum": [
+              "ABERTA",
+              "EM_ANALISE",
+              "APROVADA",
+              "REJEITADA",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "statusNovo": {
+            "description": "null em eventos que não mudam status (EDITADA)",
+            "enum": [
+              "ABERTA",
+              "EM_ANALISE",
+              "APROVADA",
+              "REJEITADA",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "tipo": {
+            "enum": [
+              "CRIADA",
+              "EDITADA",
+              "ANALISE_INICIADA",
+              "APROVADA",
+              "REJEITADA",
+              "REABERTA",
+              "EXCLUIDA"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tipo",
+          "statusAnterior",
+          "statusNovo",
+          "comentario",
+          "autor",
+          "dados",
+          "criadoEm"
+        ],
+        "type": "object"
+      },
       "LoginDto": {
         "properties": {
           "email": {
@@ -17,6 +217,160 @@
         "required": [
           "email",
           "senha"
+        ],
+        "type": "object"
+      },
+      "PaginaSolicitacoesDto": {
+        "properties": {
+          "data": {
+            "items": {
+              "properties": {
+                "analista": {
+                  "description": "Analista responsável; null até a análise começar",
+                  "nullable": true,
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "nome": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "nome"
+                  ],
+                  "type": "object"
+                },
+                "area": {
+                  "description": "Área do solicitante na criação",
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "nome": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "nome"
+                  ],
+                  "type": "object"
+                },
+                "atualizadoEm": {
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "type": "string"
+                },
+                "codigo": {
+                  "description": "Código de exibição, ex.: SOL-000042",
+                  "type": "string"
+                },
+                "dataSolicitacao": {
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                "prioridade": {
+                  "enum": [
+                    "BAIXA",
+                    "MEDIA",
+                    "ALTA"
+                  ],
+                  "type": "string"
+                },
+                "solicitante": {
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "nome": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "nome"
+                  ],
+                  "type": "object"
+                },
+                "status": {
+                  "enum": [
+                    "ABERTA",
+                    "EM_ANALISE",
+                    "APROVADA",
+                    "REJEITADA"
+                  ],
+                  "type": "string"
+                },
+                "titulo": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "codigo",
+                "titulo",
+                "prioridade",
+                "status",
+                "solicitante",
+                "area",
+                "analista",
+                "dataSolicitacao",
+                "atualizadoEm"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "page": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "pageSize": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "total": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              },
+              "totalPages": {
+                "description": "0 quando não há resultados",
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "page",
+              "pageSize",
+              "total",
+              "totalPages"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
         ],
         "type": "object"
       },
@@ -78,6 +432,20 @@
           "status",
           "instance",
           "code"
+        ],
+        "type": "object"
+      },
+      "ReaberturaDto": {
+        "additionalProperties": false,
+        "properties": {
+          "justificativa": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "type": "string"
+          }
+        },
+        "required": [
+          "justificativa"
         ],
         "type": "object"
       },
@@ -227,6 +595,289 @@
         ],
         "type": "object"
       },
+      "ResumoDto": {
+        "properties": {
+          "aberturaMaisAntiga": {
+            "description": "dataSolicitacao da ABERTA mais antiga no escopo, ou null",
+            "format": "date-time",
+            "nullable": true,
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          },
+          "escopo": {
+            "description": "GERAL para analista e administrador; PROPRIAS para o solicitante",
+            "enum": [
+              "GERAL",
+              "PROPRIAS"
+            ],
+            "type": "string"
+          },
+          "filaAlta": {
+            "description": "ABERTA de prioridade ALTA no escopo",
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "geradoEm": {
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          },
+          "porPrioridade": {
+            "properties": {
+              "ALTA": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "BAIXA": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "MEDIA": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "BAIXA",
+              "MEDIA",
+              "ALTA"
+            ],
+            "type": "object"
+          },
+          "porStatus": {
+            "properties": {
+              "ABERTA": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "APROVADA": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "EM_ANALISE": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "REJEITADA": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "ABERTA",
+              "EM_ANALISE",
+              "APROVADA",
+              "REJEITADA"
+            ],
+            "type": "object"
+          },
+          "total": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "escopo",
+          "total",
+          "porStatus",
+          "porPrioridade",
+          "filaAlta",
+          "aberturaMaisAntiga",
+          "geradoEm"
+        ],
+        "type": "object"
+      },
+      "SolicitacaoDto": {
+        "properties": {
+          "acoesPermitidas": {
+            "description": "O que o usuário atual pode fazer agora; a UI só mostra esses botões",
+            "items": {
+              "enum": [
+                "EDITAR",
+                "EXCLUIR",
+                "INICIAR_ANALISE",
+                "DECIDIR",
+                "REABRIR"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "analista": {
+            "description": "Analista responsável; null até a análise começar",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "nome": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "nome"
+            ],
+            "type": "object"
+          },
+          "area": {
+            "description": "Área do solicitante na criação",
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "nome": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "nome"
+            ],
+            "type": "object"
+          },
+          "atualizadoEm": {
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          },
+          "codigo": {
+            "description": "Código de exibição, ex.: SOL-000042",
+            "type": "string"
+          },
+          "dataSolicitacao": {
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          },
+          "decisao": {
+            "description": "Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura",
+            "nullable": true,
+            "properties": {
+              "comentario": {
+                "type": "string"
+              },
+              "decididoEm": {
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "type": "string"
+              },
+              "decididoPor": {
+                "properties": {
+                  "id": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "nome": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "nome"
+                ],
+                "type": "object"
+              },
+              "resultado": {
+                "enum": [
+                  "APROVADA",
+                  "REJEITADA"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "resultado",
+              "comentario",
+              "decididoEm",
+              "decididoPor"
+            ],
+            "type": "object"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "type": "string"
+          },
+          "prioridade": {
+            "enum": [
+              "BAIXA",
+              "MEDIA",
+              "ALTA"
+            ],
+            "type": "string"
+          },
+          "solicitante": {
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "nome": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "nome"
+            ],
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ABERTA",
+              "EM_ANALISE",
+              "APROVADA",
+              "REJEITADA"
+            ],
+            "type": "string"
+          },
+          "titulo": {
+            "type": "string"
+          },
+          "versao": {
+            "description": "Envie no PATCH para o controle de concorrência",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "codigo",
+          "titulo",
+          "prioridade",
+          "status",
+          "solicitante",
+          "area",
+          "analista",
+          "dataSolicitacao",
+          "atualizadoEm",
+          "descricao",
+          "decisao",
+          "versao",
+          "acoesPermitidas"
+        ],
+        "type": "object"
+      },
       "UsuarioAtualDto": {
         "properties": {
           "area": {
@@ -292,6 +943,46 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/areas": {
+      "get": {
+        "operationId": "listarAreas",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AreaDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Áreas ativas"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Áreas ativas, em ordem de nome",
+        "tags": [
+          "áreas"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
         "operationId": "login",
@@ -480,6 +1171,833 @@
         "summary": "Troca o refresh token por um novo par",
         "tags": [
           "autenticação"
+        ]
+      }
+    },
+    "/api/v1/dashboard/resumo": {
+      "get": {
+        "operationId": "resumoDashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumoDto"
+                }
+              }
+            },
+            "description": "Indicadores"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Totais por status e prioridade no escopo do usuário",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/solicitacoes": {
+      "get": {
+        "operationId": "listarSolicitacoes",
+        "parameters": [
+          {
+            "description": "Título, descrição ou código (SOL-000042 ou 42), sem diferenciar maiúsculas e acentos. Depois de tirar os espaços nas pontas: vazio (ignorado) ou de 2 a 200 caracteres",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "ABERTA",
+                    "EM_ANALISE",
+                    "APROVADA",
+                    "REJEITADA"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "enum": [
+                      "ABERTA",
+                      "EM_ANALISE",
+                      "APROVADA",
+                      "REJEITADA"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "prioridade",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "BAIXA",
+                    "MEDIA",
+                    "ALTA"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "enum": [
+                      "BAIXA",
+                      "MEDIA",
+                      "ALTA"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            }
+          },
+          {
+            "description": "prioridade: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro (ignora direcao)",
+            "in": "query",
+            "name": "ordenarPor",
+            "required": false,
+            "schema": {
+              "default": "dataSolicitacao",
+              "enum": [
+                "dataSolicitacao",
+                "prioridade"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "direcao",
+            "required": false,
+            "schema": {
+              "default": "desc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "eu: só as que têm o usuário atual como analista responsável",
+            "in": "query",
+            "name": "analista",
+            "required": false,
+            "schema": {
+              "enum": [
+                "eu"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginaSolicitacoesDto"
+                }
+              }
+            },
+            "description": "Página de solicitações"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Parâmetros inválidos (DADOS_INVALIDOS)"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lista com busca, filtros, ordenação e paginação (escopo do usuário)",
+        "tags": [
+          "solicitações"
+        ]
+      },
+      "post": {
+        "operationId": "criarSolicitacao",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarSolicitacaoDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoDto"
+                }
+              }
+            },
+            "description": "Criada; o header Location aponta para ela",
+            "headers": {
+              "Location": {
+                "description": "/api/v1/solicitacoes/{id}",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Corpo inválido ou com campos não aceitos (DADOS_INVALIDOS)"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Abre uma solicitação (nasce ABERTA)",
+        "tags": [
+          "solicitações"
+        ]
+      }
+    },
+    "/api/v1/solicitacoes/{id}": {
+      "delete": {
+        "operationId": "excluirSolicitacao",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Excluída"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não é o dono nem administrador (ACESSO_NEGADO)"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA)"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Status não permite exclusão (EDICAO_BLOQUEADA)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Exclusão lógica (dono com ABERTA ou administrador sem decisão)",
+        "tags": [
+          "solicitações"
+        ]
+      },
+      "get": {
+        "operationId": "detalharSolicitacao",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoDto"
+                }
+              }
+            },
+            "description": "Solicitação"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Detalhe, com as ações permitidas ao usuário atual",
+        "tags": [
+          "solicitações"
+        ]
+      },
+      "patch": {
+        "operationId": "editarSolicitacao",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditarSolicitacaoDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoDto"
+                }
+              }
+            },
+            "description": "Solicitação atualizada"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Corpo inválido ou com campos não aceitos (DADOS_INVALIDOS)"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não é o dono nem administrador (ACESSO_NEGADO)"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA)"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Status não permite edição (EDICAO_BLOQUEADA) ou versão desatualizada (CONFLITO_DE_VERSAO)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edita título, descrição e prioridade (dono com ABERTA ou administrador sem decisão)",
+        "tags": [
+          "solicitações"
+        ]
+      }
+    },
+    "/api/v1/solicitacoes/{id}/analise": {
+      "post": {
+        "operationId": "iniciarAnalise",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoDto"
+                }
+              }
+            },
+            "description": "Solicitação em análise"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Cargo sem permissão (ACESSO_NEGADO) ou a própria solicitação (SEGREGACAO_DE_FUNCOES)"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA)"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A solicitação não está ABERTA (TRANSICAO_INVALIDA)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Inicia a análise (ABERTA → EM_ANALISE); quem inicia vira o responsável",
+        "tags": [
+          "solicitações"
+        ]
+      }
+    },
+    "/api/v1/solicitacoes/{id}/decisao": {
+      "post": {
+        "operationId": "decidirSolicitacao",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisaoDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoDto"
+                }
+              }
+            },
+            "description": "Solicitação decidida"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Corpo inválido ou com campos não aceitos (DADOS_INVALIDOS)"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Cargo sem permissão ou não é o responsável (ACESSO_NEGADO), ou a própria solicitação (SEGREGACAO_DE_FUNCOES)"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA)"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A solicitação não está EM_ANALISE (TRANSICAO_INVALIDA)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Aprova ou rejeita com comentário (analista responsável ou administrador)",
+        "tags": [
+          "solicitações"
+        ]
+      }
+    },
+    "/api/v1/solicitacoes/{id}/historico": {
+      "get": {
+        "operationId": "historicoSolicitacao",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventoHistoricoDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Eventos"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Linha do tempo, do evento mais antigo para o mais recente",
+        "tags": [
+          "solicitações"
+        ]
+      }
+    },
+    "/api/v1/solicitacoes/{id}/reabertura": {
+      "post": {
+        "operationId": "reabrirSolicitacao",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReaberturaDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoDto"
+                }
+              }
+            },
+            "description": "Solicitação reaberta"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Corpo inválido ou com campos não aceitos (DADOS_INVALIDOS)"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não é administrador (ACESSO_NEGADO) ou a própria solicitação (SEGREGACAO_DE_FUNCOES)"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA)"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A solicitação não está APROVADA nem REJEITADA (TRANSICAO_INVALIDA)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reabre uma decidida (→ ABERTA) com justificativa (administrador)",
+        "tags": [
+          "solicitações"
         ]
       }
     },

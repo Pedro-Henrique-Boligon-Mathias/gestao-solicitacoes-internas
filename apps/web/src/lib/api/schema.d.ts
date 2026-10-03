@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/v1/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Áreas ativas, em ordem de nome */
+        get: operations["listarAreas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -72,6 +89,128 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/resumo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Totais por status e prioridade no escopo do usuário */
+        get: operations["resumoDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/solicitacoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista com busca, filtros, ordenação e paginação (escopo do usuário) */
+        get: operations["listarSolicitacoes"];
+        put?: never;
+        /** Abre uma solicitação (nasce ABERTA) */
+        post: operations["criarSolicitacao"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/solicitacoes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detalhe, com as ações permitidas ao usuário atual */
+        get: operations["detalharSolicitacao"];
+        put?: never;
+        post?: never;
+        /** Exclusão lógica (dono com ABERTA ou administrador sem decisão) */
+        delete: operations["excluirSolicitacao"];
+        options?: never;
+        head?: never;
+        /** Edita título, descrição e prioridade (dono com ABERTA ou administrador sem decisão) */
+        patch: operations["editarSolicitacao"];
+        trace?: never;
+    };
+    "/api/v1/solicitacoes/{id}/analise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inicia a análise (ABERTA → EM_ANALISE); quem inicia vira o responsável */
+        post: operations["iniciarAnalise"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/solicitacoes/{id}/decisao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Aprova ou rejeita com comentário (analista responsável ou administrador) */
+        post: operations["decidirSolicitacao"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/solicitacoes/{id}/historico": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Linha do tempo, do evento mais antigo para o mais recente */
+        get: operations["historicoSolicitacao"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/solicitacoes/{id}/reabertura": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reabre uma decidida (→ ABERTA) com justificativa (administrador) */
+        post: operations["reabrirSolicitacao"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health/live": {
         parameters: {
             query?: never;
@@ -110,10 +249,107 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AreaDto: {
+            /** Format: uuid */
+            id: string;
+            nome: string;
+        };
+        /** @description Solicitante, área, data e status vêm do servidor e não são aceitos */
+        CriarSolicitacaoDto: {
+            /** @description 10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim */
+            descricao: string;
+            /** @enum {string} */
+            prioridade: "BAIXA" | "MEDIA" | "ALTA";
+            /** @description 5 a 120 caracteres, sem contar os espaços nas pontas */
+            titulo: string;
+        };
+        DecisaoDto: {
+            comentario: string;
+            /** @enum {string} */
+            resultado: "APROVADA" | "REJEITADA";
+        };
+        /** @description Só título, descrição e prioridade; o status muda pelos comandos */
+        EditarSolicitacaoDto: {
+            /** @description 10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim */
+            descricao?: string;
+            /** @enum {string} */
+            prioridade?: "BAIXA" | "MEDIA" | "ALTA";
+            /** @description 5 a 120 caracteres, sem contar os espaços nas pontas */
+            titulo?: string;
+            /** @description Versão lida; se outra pessoa alterou antes, a resposta é 409 CONFLITO_DE_VERSAO */
+            versao: number;
+        };
+        EventoHistoricoDto: {
+            autor: {
+                /** Format: uuid */
+                id: string;
+                nome: string;
+            };
+            /** @description Comentário da decisão ou justificativa da reabertura */
+            comentario: string[];
+            /** Format: date-time */
+            criadoEm: string;
+            /** @description EDITADA: { campo: { antes, depois } }; REABERTA: { decisaoAnterior: { resultado, comentario, decididoEm, decididoPor, analista } } */
+            dados: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string|null} */
+            statusAnterior: "ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA" | null;
+            /**
+             * @description null em eventos que não mudam status (EDITADA)
+             * @enum {string|null}
+             */
+            statusNovo: "ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA" | null;
+            /** @enum {string} */
+            tipo: "CRIADA" | "EDITADA" | "ANALISE_INICIADA" | "APROVADA" | "REJEITADA" | "REABERTA" | "EXCLUIDA";
+        };
         LoginDto: {
             /** @description Aceita maiúsculas e espaços nas pontas (normalizado antes da busca) */
             email: string;
             senha: string;
+        };
+        PaginaSolicitacoesDto: {
+            data: {
+                /** @description Analista responsável; null até a análise começar */
+                analista: {
+                    /** Format: uuid */
+                    id: string;
+                    nome: string;
+                } | null;
+                /** @description Área do solicitante na criação */
+                area: {
+                    /** Format: uuid */
+                    id: string;
+                    nome: string;
+                };
+                /** Format: date-time */
+                atualizadoEm: string;
+                /** @description Código de exibição, ex.: SOL-000042 */
+                codigo: string;
+                /** Format: date-time */
+                dataSolicitacao: string;
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                prioridade: "BAIXA" | "MEDIA" | "ALTA";
+                solicitante: {
+                    /** Format: uuid */
+                    id: string;
+                    nome: string;
+                };
+                /** @enum {string} */
+                status: "ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA";
+                titulo: string;
+            }[];
+            meta: {
+                page: number;
+                pageSize: number;
+                total: number;
+                /** @description 0 quando não há resultados */
+                totalPages: number;
+            };
         };
         /** @description Erro no formato RFC 9457 (application/problem+json) */
         ProblemDetails: {
@@ -135,6 +371,9 @@ export interface components {
             title: string;
             /** Format: uri */
             type: string;
+        };
+        ReaberturaDto: {
+            justificativa: string;
         };
         RefreshDto: {
             refreshToken: string;
@@ -182,6 +421,84 @@ export interface components {
             /** @enum {string} */
             status: "ok";
         };
+        ResumoDto: {
+            /**
+             * Format: date-time
+             * @description dataSolicitacao da ABERTA mais antiga no escopo, ou null
+             */
+            aberturaMaisAntiga: string | null;
+            /**
+             * @description GERAL para analista e administrador; PROPRIAS para o solicitante
+             * @enum {string}
+             */
+            escopo: "GERAL" | "PROPRIAS";
+            /** @description ABERTA de prioridade ALTA no escopo */
+            filaAlta: number;
+            /** Format: date-time */
+            geradoEm: string;
+            porPrioridade: {
+                ALTA: number;
+                BAIXA: number;
+                MEDIA: number;
+            };
+            porStatus: {
+                ABERTA: number;
+                APROVADA: number;
+                EM_ANALISE: number;
+                REJEITADA: number;
+            };
+            total: number;
+        };
+        SolicitacaoDto: {
+            /** @description O que o usuário atual pode fazer agora; a UI só mostra esses botões */
+            acoesPermitidas: ("EDITAR" | "EXCLUIR" | "INICIAR_ANALISE" | "DECIDIR" | "REABRIR")[];
+            /** @description Analista responsável; null até a análise começar */
+            analista: {
+                /** Format: uuid */
+                id: string;
+                nome: string;
+            } | null;
+            /** @description Área do solicitante na criação */
+            area: {
+                /** Format: uuid */
+                id: string;
+                nome: string;
+            };
+            /** Format: date-time */
+            atualizadoEm: string;
+            /** @description Código de exibição, ex.: SOL-000042 */
+            codigo: string;
+            /** Format: date-time */
+            dataSolicitacao: string;
+            /** @description Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura */
+            decisao: {
+                comentario: string;
+                /** Format: date-time */
+                decididoEm: string;
+                decididoPor: {
+                    /** Format: uuid */
+                    id: string;
+                    nome: string;
+                };
+                /** @enum {string} */
+                resultado: "APROVADA" | "REJEITADA";
+            } | null;
+            descricao: string;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            prioridade: "BAIXA" | "MEDIA" | "ALTA";
+            solicitante: {
+                /** Format: uuid */
+                id: string;
+                nome: string;
+            };
+            /** @enum {string} */
+            status: "ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA";
+            titulo: string;
+            /** @description Envie no PATCH para o controle de concorrência */
+            versao: number;
+        };
         UsuarioAtualDto: {
             area: {
                 /** Format: uuid */
@@ -204,6 +521,35 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listarAreas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Áreas ativas */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AreaDto"][];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -353,6 +699,536 @@ export interface operations {
             };
             /** @description Mais de 5 renovações por minuto com o mesmo refresh token (MUITAS_TENTATIVAS) */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    resumoDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Indicadores */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumoDto"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listarSolicitacoes: {
+        parameters: {
+            query?: {
+                /** @description Título, descrição ou código (SOL-000042 ou 42), sem diferenciar maiúsculas e acentos. Depois de tirar os espaços nas pontas: vazio (ignorado) ou de 2 a 200 caracteres */
+                q?: string;
+                status?: ("ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA") | ("ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA")[];
+                prioridade?: ("BAIXA" | "MEDIA" | "ALTA") | ("BAIXA" | "MEDIA" | "ALTA")[];
+                /** @description prioridade: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro (ignora direcao) */
+                ordenarPor?: "dataSolicitacao" | "prioridade";
+                direcao?: "asc" | "desc";
+                /** @description eu: só as que têm o usuário atual como analista responsável */
+                analista?: "eu";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página de solicitações */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginaSolicitacoesDto"];
+                };
+            };
+            /** @description Parâmetros inválidos (DADOS_INVALIDOS) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    criarSolicitacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CriarSolicitacaoDto"];
+            };
+        };
+        responses: {
+            /** @description Criada; o header Location aponta para ela */
+            201: {
+                headers: {
+                    /** @description /api/v1/solicitacoes/{id} */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolicitacaoDto"];
+                };
+            };
+            /** @description Corpo inválido ou com campos não aceitos (DADOS_INVALIDOS) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    detalharSolicitacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitação */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolicitacaoDto"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    excluirSolicitacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Excluída */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não é o dono nem administrador (ACESSO_NEGADO) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Status não permite exclusão (EDICAO_BLOQUEADA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    editarSolicitacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarSolicitacaoDto"];
+            };
+        };
+        responses: {
+            /** @description Solicitação atualizada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolicitacaoDto"];
+                };
+            };
+            /** @description Corpo inválido ou com campos não aceitos (DADOS_INVALIDOS) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não é o dono nem administrador (ACESSO_NEGADO) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Status não permite edição (EDICAO_BLOQUEADA) ou versão desatualizada (CONFLITO_DE_VERSAO) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    iniciarAnalise: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitação em análise */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolicitacaoDto"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Cargo sem permissão (ACESSO_NEGADO) ou a própria solicitação (SEGREGACAO_DE_FUNCOES) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description A solicitação não está ABERTA (TRANSICAO_INVALIDA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    decidirSolicitacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisaoDto"];
+            };
+        };
+        responses: {
+            /** @description Solicitação decidida */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolicitacaoDto"];
+                };
+            };
+            /** @description Corpo inválido ou com campos não aceitos (DADOS_INVALIDOS) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Cargo sem permissão ou não é o responsável (ACESSO_NEGADO), ou a própria solicitação (SEGREGACAO_DE_FUNCOES) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description A solicitação não está EM_ANALISE (TRANSICAO_INVALIDA) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    historicoSolicitacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Eventos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventoHistoricoDto"][];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    reabrirSolicitacao: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReaberturaDto"];
+            };
+        };
+        responses: {
+            /** @description Solicitação reaberta */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SolicitacaoDto"];
+                };
+            };
+            /** @description Corpo inválido ou com campos não aceitos (DADOS_INVALIDOS) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não é administrador (ACESSO_NEGADO) ou a própria solicitação (SEGREGACAO_DE_FUNCOES) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description A solicitação não está APROVADA nem REJEITADA (TRANSICAO_INVALIDA) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

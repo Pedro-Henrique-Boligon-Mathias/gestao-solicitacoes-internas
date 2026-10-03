@@ -7,8 +7,11 @@ import { ContextoModule } from './common/context/contexto.module';
 import { LoggingModule } from './common/logging/logging.module';
 import { validarEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
+import { AreasModule } from './modules/areas/areas.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { HealthModule } from './modules/health/health.module';
+import { SolicitacoesModule } from './modules/solicitacoes/solicitacoes.module';
 
 @Module({
   imports: [
@@ -24,6 +27,9 @@ import { HealthModule } from './modules/health/health.module';
     DatabaseModule,
     AuthModule,
     HealthModule,
+    SolicitacoesModule,
+    DashboardModule,
+    AreasModule,
   ],
   providers: [
     // DTOs zod validam body, params e query, e as respostas marcadas com @ZodSerializerDto
