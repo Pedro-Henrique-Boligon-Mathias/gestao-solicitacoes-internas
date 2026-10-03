@@ -11,7 +11,7 @@ WORKDIR /repo
 FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json apps/api/
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile --filter "api..."
 COPY tsconfig.base.json ./
 COPY apps/api apps/api
@@ -22,7 +22,7 @@ RUN pnpm --filter api run generate \
 # auto-install-peers=false: o CLI do Prisma é peer do client, mas não roda na API.
 # Do runtime do Prisma ficam só os arquivos do Postgres (sem source maps nem os outros bancos).
 FROM build AS deploy
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store,sharing=locked \
     cp apps/api/package.json /tmp/package.json \
  && node apps/api/docker/manifesto-imagem.mjs runtime \
  && pnpm --filter api deploy --legacy --prod --config.auto-install-peers=false /prod/api \
