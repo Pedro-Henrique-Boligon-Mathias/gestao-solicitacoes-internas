@@ -1,6 +1,25 @@
 {
   "components": {
     "schemas": {
+      "LoginDto": {
+        "properties": {
+          "email": {
+            "description": "Aceita maiúsculas e espaços nas pontas (normalizado antes da busca)",
+            "maxLength": 320,
+            "type": "string"
+          },
+          "senha": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "senha"
+        ],
+        "type": "object"
+      },
       "ProblemDetails": {
         "description": "Erro no formato RFC 9457 (application/problem+json)",
         "properties": {
@@ -62,6 +81,19 @@
         ],
         "type": "object"
       },
+      "RefreshDto": {
+        "properties": {
+          "refreshToken": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object"
+      },
       "RespostaProntidaoDto": {
         "properties": {
           "details": {
@@ -101,6 +133,86 @@
         ],
         "type": "object"
       },
+      "RespostaSessaoDto": {
+        "properties": {
+          "accessExpiraEm": {
+            "description": "Fim da validade do access token (UTC)",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          },
+          "accessToken": {
+            "description": "JWT (HS256) para o header Authorization: Bearer",
+            "type": "string"
+          },
+          "refreshExpiraEm": {
+            "description": "Fim da validade do refresh token (UTC)",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          },
+          "refreshToken": {
+            "description": "Token opaco, de uso único, para POST /auth/refresh",
+            "type": "string"
+          },
+          "usuario": {
+            "properties": {
+              "area": {
+                "properties": {
+                  "id": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "nome": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "nome"
+                ],
+                "type": "object"
+              },
+              "cargo": {
+                "enum": [
+                  "SOLICITANTE",
+                  "ANALISTA",
+                  "ADMIN"
+                ],
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "nome": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "nome",
+              "email",
+              "cargo",
+              "area"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "accessToken",
+          "accessExpiraEm",
+          "refreshToken",
+          "refreshExpiraEm",
+          "usuario"
+        ],
+        "type": "object"
+      },
       "RespostaVivacidadeDto": {
         "properties": {
           "status": {
@@ -112,6 +224,54 @@
         },
         "required": [
           "status"
+        ],
+        "type": "object"
+      },
+      "UsuarioAtualDto": {
+        "properties": {
+          "area": {
+            "properties": {
+              "id": {
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              },
+              "nome": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "nome"
+            ],
+            "type": "object"
+          },
+          "cargo": {
+            "enum": [
+              "SOLICITANTE",
+              "ANALISTA",
+              "ADMIN"
+            ],
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "email",
+          "cargo",
+          "area"
         ],
         "type": "object"
       }
@@ -132,6 +292,197 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaSessaoDto"
+                }
+              }
+            },
+            "description": "Sessão aberta"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Corpo inválido (DADOS_INVALIDOS)"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "E-mail ou senha inválidos (CREDENCIAIS_INVALIDAS)"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Mais de 5 tentativas por minuto para o mesmo e-mail (MUITAS_TENTATIVAS)"
+          }
+        },
+        "summary": "Autentica e abre uma sessão",
+        "tags": [
+          "autenticação"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Sessão encerrada"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão já encerrada (NAO_AUTENTICADO)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Encerra a sessão (revoga a família inteira)",
+        "tags": [
+          "autenticação"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "usuarioAtual",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsuarioAtualDto"
+                }
+              }
+            },
+            "description": "Usuário atual"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Usuário autenticado, com a área",
+        "tags": [
+          "autenticação"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "renovarSessao",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespostaSessaoDto"
+                }
+              }
+            },
+            "description": "Novo par de tokens"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Corpo inválido (DADOS_INVALIDOS)"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Refresh token desconhecido, expirado, revogado ou reusado (SESSAO_INVALIDA)"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Mais de 5 renovações por minuto com o mesmo refresh token (MUITAS_TENTATIVAS)"
+          }
+        },
+        "summary": "Troca o refresh token por um novo par",
+        "tags": [
+          "autenticação"
+        ]
+      }
+    },
     "/health/live": {
       "get": {
         "operationId": "vivacidade",

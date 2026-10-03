@@ -6,11 +6,13 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
+import { Public } from '../../common/decorators/publico.decorator';
 import { ZodSerializerDto } from 'nestjs-zod';
 import { RespostaProntidaoDto, RespostaVivacidadeDto, type RespostaProntidao } from './health.dto';
 import { VerificadorBanco } from './verificador-banco';
 
 @ApiTags('saúde')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(private readonly banco: VerificadorBanco) {}

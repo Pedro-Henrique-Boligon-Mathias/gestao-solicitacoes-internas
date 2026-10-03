@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ZodValidationException } from 'nestjs-zod';
 import { ZodError } from 'zod';
+import { ErroDeDominio, type CodigoDeErro } from './erro-de-dominio';
 import type { ErroDeCampo, ProblemDetails } from './problem-details.schema';
 
 export type { ErroDeCampo, ProblemDetails } from './problem-details.schema';
@@ -34,9 +35,29 @@ const REQUISICAO_INVALIDA: TipoDeErro = {
   title: 'Requisição inválida',
 };
 
+/** Status e título de cada erro de domínio; o `type` vem do code em kebab-case. */
+const ERROS_DE_DOMINIO: Record<CodigoDeErro, { status: number; title: string }> = {
+  NAO_AUTENTICADO: { status: HttpStatus.UNAUTHORIZED, title: 'Não autenticado' },
+  CREDENCIAIS_INVALIDAS: { status: HttpStatus.UNAUTHORIZED, title: 'Credenciais inválidas' },
+  SESSAO_INVALIDA: { status: HttpStatus.UNAUTHORIZED, title: 'Sessão inválida' },
+  ACESSO_NEGADO: { status: HttpStatus.FORBIDDEN, title: 'Acesso negado' },
+  MUITAS_TENTATIVAS: { status: HttpStatus.TOO_MANY_REQUESTS, title: 'Muitas tentativas' },
+};
+
+function tipoDoDominio(code: CodigoDeErro): TipoDeErro {
+  return {
+    code,
+    slug: code.toLowerCase().replaceAll('_', '-'),
+    title: ERROS_DE_DOMINIO[code].title,
+  };
+}
+
 const POR_STATUS: Partial<Record<number, TipoDeErro>> = {
   [HttpStatus.BAD_REQUEST]: DADOS_INVALIDOS,
+  [HttpStatus.UNAUTHORIZED]: tipoDoDominio('NAO_AUTENTICADO'),
+  [HttpStatus.FORBIDDEN]: tipoDoDominio('ACESSO_NEGADO'),
   [HttpStatus.NOT_FOUND]: NAO_ENCONTRADO,
+  [HttpStatus.TOO_MANY_REQUESTS]: tipoDoDominio('MUITAS_TENTATIVAS'),
 };
 
 // Mensagem padrão do Express/Nest para rota inexistente ("Cannot GET /x").
@@ -79,6 +100,19 @@ export function paraProblemDetails(
   excecao: unknown,
   contexto: { instance: string; requestId?: string },
 ): ProblemDetails {
+  if (excecao instanceof ErroDeDominio) {
+    const tipo = tipoDoDominio(excecao.code);
+    return {
+      type: `${BASE_TIPO}/${tipo.slug}`,
+      title: tipo.title,
+      status: ERROS_DE_DOMINIO[excecao.code].status,
+      detail: excecao.detail,
+      instance: contexto.instance,
+      code: tipo.code,
+      ...(contexto.requestId ? { requestId: contexto.requestId } : {}),
+    };
+  }
+
   const status =
     excecao instanceof HttpException ? excecao.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
   const tipo = tipoPara(status);

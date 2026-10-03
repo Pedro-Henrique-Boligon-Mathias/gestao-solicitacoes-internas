@@ -27,8 +27,8 @@ const imagens = {
   // Migrations e seed: CLI do Prisma, tsx para o seed em TypeScript e o client gerado
   migrate: () => ({
     dependencies: {
-      ...escolher(dependencies, ['@prisma/adapter-pg', '@prisma/client']),
-      ...escolher(devDependencies, ['@node-rs/argon2', 'dotenv', 'prisma', 'tsx']),
+      ...escolher(dependencies, ['@node-rs/argon2', '@prisma/adapter-pg', '@prisma/client']),
+      ...escolher(devDependencies, ['dotenv', 'prisma', 'tsx']),
     },
     files: ['prisma', 'prisma.config.ts', 'src/generated'],
   }),
