@@ -1,8 +1,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-/** 404: solicitação inexistente, invisível para o usuário ou endereço errado. */
-export function PaginaNaoEncontrada() {
+const MENSAGEM_SOLICITACAO = 'Esta solicitação não existe ou você não tem acesso a ela.';
+
+/**
+ * 404 com link para o dashboard. Sem `mensagem`, fala da solicitação (inexistente ou invisível
+ * para o usuário); o endereço errado passa um texto genérico.
+ */
+export function PaginaNaoEncontrada({ mensagem = MENSAGEM_SOLICITACAO }: { mensagem?: string }) {
   return (
     <section className="bg-card rounded-card flex flex-col items-center gap-3 px-5 py-14 text-center">
       <p
@@ -14,9 +19,7 @@ export function PaginaNaoEncontrada() {
       <h1 className="font-display text-xl font-semibold tracking-[-0.02em]">
         Página não encontrada
       </h1>
-      <p className="text-muted-foreground max-w-sm text-sm">
-        Esta solicitação não existe ou você não tem acesso a ela.
-      </p>
+      <p className="text-muted-foreground max-w-sm text-sm">{mensagem}</p>
       <Button variant="soft" asChild className="mt-1">
         <Link href="/dashboard">Voltar ao dashboard</Link>
       </Button>

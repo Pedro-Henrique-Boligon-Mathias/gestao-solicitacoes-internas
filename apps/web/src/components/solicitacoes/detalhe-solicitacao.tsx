@@ -46,7 +46,7 @@ export function DetalheSolicitacao({
     <div className={cn('flex flex-col gap-4 max-[760px]:gap-3', temAcoes && 'max-[760px]:pb-20')}>
       <Link
         href="/solicitacoes"
-        className="text-link rounded-field focus-visible:outline-ring flex w-fit items-center gap-1.5 px-1 text-sm font-semibold outline-none hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="text-link rounded-field focus-visible:outline-ring flex w-fit items-center gap-1.5 px-1 text-sm font-semibold outline-none hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 max-[760px]:min-h-11"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
         Voltar para solicitações

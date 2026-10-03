@@ -34,7 +34,7 @@ export function DialogContent({
         {comFechar && (
           <DialogPrimitivo.Close
             aria-label="Fechar"
-            className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-ring absolute top-6 right-6 grid size-9 cursor-pointer place-items-center rounded-full shadow-[inset_0_0_0_1px_var(--border)] transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 max-[760px]:top-4 max-[760px]:right-4"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-ring absolute top-6 right-6 grid size-9 cursor-pointer place-items-center rounded-full shadow-[inset_0_0_0_1px_var(--border)] transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 max-[760px]:top-4 max-[760px]:right-4 max-[760px]:size-11"
           >
             <X aria-hidden="true" className="size-4" />
           </DialogPrimitivo.Close>
