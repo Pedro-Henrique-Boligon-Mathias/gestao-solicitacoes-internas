@@ -2,6 +2,7 @@ import { hash } from '@node-rs/argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { config } from 'dotenv';
 import { PrismaClient, type Cargo } from '../src/generated/prisma/client';
+import { semearSolicitacoes, type Apelido } from './seed-solicitacoes';
 
 config({ path: '../../.env', quiet: true });
 
@@ -16,24 +17,51 @@ const AREAS = [
 
 type Area = (typeof AREAS)[number];
 
-const USUARIOS_DEMO: { nome: string; email: string; cargo: Cargo; area: Area }[] = [
-  { nome: 'Ana Souza', email: 'ana.souza@demo.test', cargo: 'SOLICITANTE', area: 'Financeiro' },
-  {
-    nome: 'Bruno Lima',
-    email: 'bruno.lima@demo.test',
-    cargo: 'SOLICITANTE',
-    area: 'Recursos Humanos',
-  },
-  {
-    nome: 'Camila Rocha',
-    email: 'camila.rocha@demo.test',
-    cargo: 'SOLICITANTE',
-    area: 'Comercial',
-  },
-  { nome: 'Carla Mendes', email: 'carla.mendes@demo.test', cargo: 'ANALISTA', area: 'Tecnologia' },
-  { nome: 'Rafael Costa', email: 'rafael.costa@demo.test', cargo: 'ANALISTA', area: 'Tecnologia' },
-  { nome: 'Diego Alves', email: 'diego.alves@demo.test', cargo: 'ADMIN', area: 'Tecnologia' },
-];
+const USUARIOS_DEMO: { apelido: Apelido; nome: string; email: string; cargo: Cargo; area: Area }[] =
+  [
+    {
+      apelido: 'ana',
+      nome: 'Ana Souza',
+      email: 'ana.souza@demo.test',
+      cargo: 'SOLICITANTE',
+      area: 'Financeiro',
+    },
+    {
+      apelido: 'bruno',
+      nome: 'Bruno Lima',
+      email: 'bruno.lima@demo.test',
+      cargo: 'SOLICITANTE',
+      area: 'Recursos Humanos',
+    },
+    {
+      apelido: 'camila',
+      nome: 'Camila Rocha',
+      email: 'camila.rocha@demo.test',
+      cargo: 'SOLICITANTE',
+      area: 'Comercial',
+    },
+    {
+      apelido: 'carla',
+      nome: 'Carla Mendes',
+      email: 'carla.mendes@demo.test',
+      cargo: 'ANALISTA',
+      area: 'Tecnologia',
+    },
+    {
+      apelido: 'rafael',
+      nome: 'Rafael Costa',
+      email: 'rafael.costa@demo.test',
+      cargo: 'ANALISTA',
+      area: 'Tecnologia',
+    },
+    {
+      apelido: 'diego',
+      nome: 'Diego Alves',
+      email: 'diego.alves@demo.test',
+      cargo: 'ADMIN',
+      area: 'Tecnologia',
+    },
+  ];
 
 async function main(): Promise<void> {
   const url = process.env.MIGRATION_DATABASE_URL;
@@ -65,7 +93,14 @@ async function main(): Promise<void> {
       });
     }
 
-    console.log(`Seed concluído: ${AREAS.length} áreas e ${USUARIOS_DEMO.length} usuários.`);
+    const emails = Object.fromEntries(
+      USUARIOS_DEMO.map((usuario) => [usuario.apelido, usuario.email]),
+    ) as Record<Apelido, string>;
+    const solicitacoes = await semearSolicitacoes(prisma, emails);
+
+    console.log(
+      `Seed concluído: ${AREAS.length} áreas, ${USUARIOS_DEMO.length} usuários e ${solicitacoes} solicitações.`,
+    );
   } finally {
     await prisma.$disconnect();
   }
