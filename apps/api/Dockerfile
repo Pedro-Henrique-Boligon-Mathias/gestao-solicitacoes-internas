@@ -25,10 +25,10 @@ FROM build AS deploy
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     cp apps/api/package.json /tmp/package.json \
  && node apps/api/docker/manifesto-imagem.mjs runtime \
- && pnpm --filter api deploy --legacy --prod --offline --config.auto-install-peers=false /prod/api \
+ && pnpm --filter api deploy --legacy --prod --config.auto-install-peers=false /prod/api \
  && cp /tmp/package.json apps/api/package.json \
  && node apps/api/docker/manifesto-imagem.mjs migrate \
- && pnpm --filter api deploy --legacy --prod --offline --config.auto-install-peers=false /prod/migrate \
+ && pnpm --filter api deploy --legacy --prod --config.auto-install-peers=false /prod/migrate \
  && find /prod -path '*/@prisma/client/runtime/*' -type f \
       \( -name '*.map' -o \( -name 'query_compiler_*' ! -name '*postgresql*' \) \) -delete
 
