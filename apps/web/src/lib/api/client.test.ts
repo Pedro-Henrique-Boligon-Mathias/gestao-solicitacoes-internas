@@ -68,4 +68,22 @@ describe('ADR-001: criarClienteApi', () => {
 
     expect(requisicao().headers.get('X-Request-Id')).toMatch(UUID);
   });
+
+  it('ADR-001: com accessToken, envia Authorization: Bearer <token>', async () => {
+    const requisicao = interceptarFetch();
+    const criarClienteApi = await carregarCliente();
+
+    await criarClienteApi({ accessToken: 'token-de-acesso' }).GET('/health/live');
+
+    expect(requisicao().headers.get('Authorization')).toBe('Bearer token-de-acesso');
+  });
+
+  it('ADR-001: sem accessToken, não envia Authorization', async () => {
+    const requisicao = interceptarFetch();
+    const criarClienteApi = await carregarCliente();
+
+    await criarClienteApi().GET('/health/live');
+
+    expect(requisicao().headers.has('Authorization')).toBe(false);
+  });
 });

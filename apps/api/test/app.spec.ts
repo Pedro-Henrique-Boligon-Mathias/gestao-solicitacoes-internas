@@ -3,12 +3,14 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import { Public } from '../src/common/decorators/publico.decorator';
 import { configurarApp } from '../src/configurar-app';
 import { PrismaService } from '../src/database/prisma.service';
 
 const TIPO_ERRO = 'https://solicitacoes.local/erros';
 
-/** Rota que falha de um jeito inesperado, para observar a resposta 500. */
+/** Rota pública que falha de um jeito inesperado, para observar a resposta 500. */
+@Public()
 @Controller('teste-erro')
 class ControllerComFalha {
   @Get()

@@ -5,6 +5,8 @@ import type { paths } from './schema';
 export type OpcoesClienteApi = {
   /** Correlaciona a chamada com os logs da API; sem ele, gera um novo. */
   requestId?: string;
+  /** Access token da sessão; quando presente, vai como `Authorization: Bearer`. */
+  accessToken?: string;
 };
 
 /**
@@ -12,8 +14,12 @@ export type OpcoesClienteApi = {
  * Só roda no servidor do Next (BFF): dentro do Docker, API_URL aponta para o serviço "api".
  */
 export function criarClienteApi(opcoes: OpcoesClienteApi = {}) {
+  const headers: Record<string, string> = {
+    'X-Request-Id': opcoes.requestId ?? crypto.randomUUID(),
+  };
+  if (opcoes.accessToken) headers.Authorization = `Bearer ${opcoes.accessToken}`;
   return createClient<paths>({
     baseUrl: process.env.API_URL ?? 'http://localhost:3001',
-    headers: { 'X-Request-Id': opcoes.requestId ?? crypto.randomUUID() },
+    headers,
   });
 }

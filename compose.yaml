@@ -47,8 +47,13 @@ services:
       DATABASE_URL: postgresql://app_runtime:${APP_RUNTIME_PASSWORD:-runtime-local}@db:5432/solicitacoes
       WEB_ORIGIN: http://localhost:3000
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      JWT_SECRET: ${JWT_SECRET:-segredo-local-de-desenvolvimento-troque-em-producao}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
+      REFRESH_TOKEN_DIAS: ${REFRESH_TOKEN_DIAS:-7}
+      REFRESH_GRACA_SEGUNDOS: ${REFRESH_GRACA_SEGUNDOS:-10}
+    # Publicada só no loopback do host: de fora, a API é acessada pelo Next
     ports:
-      - '3001:3001'
+      - '127.0.0.1:3001:3001'
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -71,6 +76,8 @@ services:
     environment:
       # Chamada interna feita pelo servidor do Next; o navegador nunca acessa a API diretamente
       API_URL: http://api:3001
+      # http://localhost não tem HTTPS: com Secure, o Safari recusaria os cookies de sessão
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     ports:
       - '3000:3000'
     depends_on:

@@ -5,6 +5,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { z } from 'zod';
 import { AppModule } from '../src/app.module';
+import { Public } from '../src/common/decorators/publico.decorator';
 import { configurarApp } from '../src/configurar-app';
 import { PrismaService } from '../src/database/prisma.service';
 
@@ -15,7 +16,8 @@ class DtoDeTeste extends createZodDto(
   }),
 ) {}
 
-/** Controller só de teste: o corpo passa pelo ZodValidationPipe global. */
+/** Controller só de teste (público): o corpo passa pelo ZodValidationPipe global. */
+@Public()
 @Controller('teste-validacao')
 class ControllerDeValidacao {
   @Post()

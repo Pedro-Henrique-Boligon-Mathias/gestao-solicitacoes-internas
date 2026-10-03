@@ -7,6 +7,7 @@ import { ContextoModule } from './common/context/contexto.module';
 import { LoggingModule } from './common/logging/logging.module';
 import { validarEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 
 @Module({
@@ -21,6 +22,7 @@ import { HealthModule } from './modules/health/health.module';
     LoggingModule,
     ContextoModule,
     DatabaseModule,
+    AuthModule,
     HealthModule,
   ],
   providers: [

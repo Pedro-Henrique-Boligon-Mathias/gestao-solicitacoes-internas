@@ -32,6 +32,10 @@
     "contract:generate": {
       "dependsOn": ["api#openapi:generate"],
       "cache": false
+    },
+    "web#build": {
+      "dependsOn": ["^build", "generate", "web#typecheck"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     }
   }
 }
