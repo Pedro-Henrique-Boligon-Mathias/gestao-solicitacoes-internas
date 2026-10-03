@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { ignorarConsoleError } from '@/test/dom';
 import { ProvedorTema } from './provedor-tema';
 
 /** O jsdom não tem matchMedia: simula a preferência de cor do sistema operacional. */
@@ -21,7 +22,23 @@ function simularSistema(escuro: boolean): void {
 
 const html = () => document.documentElement;
 
+/**
+ * O next-themes injeta um <script> inline (evita o flash de tema no carregamento do servidor) e o
+ * React avisa que scripts não rodam no render do cliente. É esperado aqui; outros erros passam.
+ */
+const AVISO_SCRIPT_NEXT_THEMES = 'Encountered a script tag while rendering React component';
+
 describe('ADR-013: ProvedorTema', () => {
+  let restaurarConsole: () => void;
+
+  beforeAll(() => {
+    restaurarConsole = ignorarConsoleError(AVISO_SCRIPT_NEXT_THEMES);
+  });
+
+  afterAll(() => {
+    restaurarConsole();
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     localStorage.clear();

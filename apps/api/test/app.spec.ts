@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module';
 import { Public } from '../src/common/decorators/publico.decorator';
 import { configurarApp } from '../src/configurar-app';
 import { PrismaService } from '../src/database/prisma.service';
+import { capturarErroRegistrado } from './apoio/log';
 
 const TIPO_ERRO = 'https://solicitacoes.local/erros';
 
@@ -134,10 +135,24 @@ describe('API (HTTP)', () => {
     });
 
     it('ADR-008: erro inesperado responde 500 ERRO_INTERNO sem detail e sem stack', async () => {
-      const resposta = await request(app.getHttpServer())
-        .get('/api/v1/teste-erro')
-        .set('X-Request-Id', 'teste-500')
-        .expect(500);
+      // O filtro registra o erro no log; aqui ele é esperado: captura, silencia e confere
+      const registro = capturarErroRegistrado('teste-500');
+      let resposta: request.Response;
+      try {
+        resposta = await request(app.getHttpServer())
+          .get('/api/v1/teste-erro')
+          .set('X-Request-Id', 'teste-500')
+          .expect(500);
+      } finally {
+        registro.restaurar();
+      }
+
+      expect(registro.capturados()).toHaveLength(1);
+      expect(registro.capturados()[0]).toEqual({
+        contexto: 'ProblemDetailsFilter',
+        dados: expect.objectContaining({ requestId: 'teste-500', err: expect.any(Error) }),
+      });
+      expect((registro.capturados()[0]!.dados.err as Error).message).toBe('senha do banco: 123');
 
       expect(resposta.headers['content-type']).toContain('application/problem+json');
       expect(resposta.body).toMatchObject({
