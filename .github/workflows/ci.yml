@@ -51,12 +51,36 @@ jobs:
       - run: pnpm test:integration
 
   docker:
-    name: Ambiente Docker sobe do zero
+    name: Ambiente Docker do zero e E2E
     needs: qualidade
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Alvo: o job todo em menos de 15 min; o teto cobre um build das imagens sem cache
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
+      # Dependências e Playwright antes do build das imagens: um lockfile quebrado falha em segundos.
+      # O E2E roda no mesmo job, com o ambiente de pé, para as imagens serem construídas uma vez só.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Versão do Playwright
+        id: playwright
+        run: echo "versao=$(pnpm --filter web exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache dos navegadores do Playwright
+        id: cache-playwright
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.versao }}
+      - name: Instalar o Chromium e as dependências do sistema
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: pnpm --filter web exec playwright install --with-deps chromium
+      - name: Instalar só as dependências do sistema (Chromium em cache)
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        run: pnpm --filter web exec playwright install-deps chromium
       - name: Subir db, migrations, api, web, worker e ext-mock
         run: docker compose up --build --detach --wait --wait-timeout 600
       - name: Worker e ext-mock saudáveis
@@ -86,6 +110,20 @@ jobs:
             30[1278]\ */login*) ;;
             *) echo "Esperado redirecionamento para /login"; exit 1 ;;
           esac
+      - name: Jornadas E2E (Playwright)
+        run: pnpm test:e2e
+        env:
+          CI: true
+      - name: Relatório e traces do Playwright
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Logs dos containers
         if: failure()
         run: docker compose logs
