@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { Avisos } from '@/components/avisos';
 import { ProvedorTema } from '@/components/provedor-tema';
 import { cn } from '@/lib/utils';
 import './globals.css';
@@ -39,7 +40,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={cn(fonteDisplay.variable, fonteSans.variable, fonteMono.variable)}
     >
       <body>
-        <ProvedorTema>{children}</ProvedorTema>
+        <ProvedorTema>
+          {children}
+          <Avisos />
+        </ProvedorTema>
       </body>
     </html>
   );

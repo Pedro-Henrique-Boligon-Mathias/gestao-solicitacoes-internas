@@ -146,3 +146,7 @@ O `pnpm dev` sobe a API (porta 3001) e a web (porta 3000) com recarga automátic
 - **CI (GitHub Actions):** em todo PR e push na `main`, roda a validação completa (com o contrato OpenAPI), os testes de integração com Postgres real, sobe o ambiente Docker do zero e verifica a API e a web, e faz uma varredura de segredos.
 
 Os hooks são instalados automaticamente pelo `pnpm install`.
+
+## Limitações conhecidas
+
+- **404 com status HTTP 200.** Uma solicitação inexistente ou invisível mostra a página de "não encontrada", mas a resposta HTTP sai com status 200 (e `noindex`). Como a página tem `loading.tsx`, o Next começa a enviar o esqueleto antes de a consulta terminar, e o status já foi enviado quando o `notFound()` acontece. Para o usuário não muda nada; para clientes que olham o status, o 404 real é o da API.

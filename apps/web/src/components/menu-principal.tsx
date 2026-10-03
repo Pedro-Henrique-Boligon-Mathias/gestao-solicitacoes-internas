@@ -12,7 +12,7 @@ const ITENS: { href: string; rotulo: string; Icone: LucideIcon }[] = [
 ];
 
 /** Menu lateral; abaixo de 760px vira uma pílula horizontal no topo. */
-export function MenuPrincipal() {
+export function MenuPrincipal({ fila }: { fila?: number }) {
   const caminho = usePathname();
 
   return (
@@ -50,6 +50,13 @@ export function MenuPrincipal() {
                 <Icone aria-hidden="true" className="size-[18px]" strokeWidth={1.8} />
                 {/* No celular, os itens inativos mostram só o ícone */}
                 <span className={cn(!ativo && 'max-[760px]:sr-only')}>{rotulo}</span>
+                {href === '/solicitacoes' && fila !== undefined && fila > 0 && (
+                  <span className="bg-brand-orange rounded-pill ml-auto px-2 py-px font-mono text-xs font-medium text-[#14213D] tabular-nums max-[760px]:ml-0">
+                    <span className="sr-only">, </span>
+                    {fila}
+                    <span className="sr-only"> na fila</span>
+                  </span>
+                )}
               </Link>
             </li>
           );

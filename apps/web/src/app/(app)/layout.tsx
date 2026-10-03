@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { MenuPrincipal } from '@/components/menu-principal';
 import { MenuUsuario } from '@/components/menu-usuario';
+import { obterResumo } from '@/features/solicitacoes/consultas';
 import { obterUsuarioAtual } from '@/lib/api/autenticado';
 
 /** Saudação pela hora de Brasília. */
@@ -25,10 +26,15 @@ export default async function LayoutAreaLogada({ children }: { children: ReactNo
   if (!resultado.autenticado) redirect('/api/sessao/encerrar');
   const { usuario } = resultado;
   const primeiroNome = usuario.nome.split(' ')[0];
+  // Contador da fila no menu, só para quem analisa; se o resumo falhar, o menu fica sem ele.
+  // O layout não renderiza de novo na navegação pelo cliente: o número atualiza quando uma
+  // action chama revalidatePath ou quando a página é recarregada.
+  const resumo = usuario.cargo === 'SOLICITANTE' ? null : await obterResumo();
+  const fila = resumo?.ok ? resumo.dados.porStatus.ABERTA : undefined;
 
   return (
     <div className="flex min-h-dvh flex-wrap content-start items-stretch gap-4 p-4 max-[760px]:gap-3 max-[760px]:p-2.5">
-      <MenuPrincipal />
+      <MenuPrincipal fila={fila} />
       {/* Base de 512px: com o menu de 200px e as margens, a quebra cai perto dos 760px */}
       <div className="flex min-w-0 flex-[999_1_512px] flex-col gap-4 max-[760px]:gap-3">
         <header className="flex flex-wrap items-center justify-between gap-3 px-1 pt-1.5">

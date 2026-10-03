@@ -13,6 +13,11 @@ const variantesBotao = cva(
         outline: 'bg-card text-foreground shadow-[inset_0_0_0_1px_var(--input)] hover:bg-muted',
         soft: 'bg-muted text-foreground hover:bg-accent',
         ghost: 'text-muted-foreground hover:bg-muted hover:text-foreground bg-transparent',
+        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        // Só dentro do card de destaque marinho (anel de foco laranja)
+        orange:
+          'bg-brand-orange text-[#14213D] hover:bg-brand-orange/90 focus-visible:outline-brand-orange',
+        hero: 'text-hero-foreground bg-transparent shadow-[inset_0_0_0_1px_rgb(255_255_255/35%)] hover:bg-white/10 focus-visible:outline-brand-orange',
       },
       size: {
         default: 'h-10 px-[18px]',
