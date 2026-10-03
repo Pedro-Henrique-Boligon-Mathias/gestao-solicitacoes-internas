@@ -1,6 +1,5 @@
 packages:
   - apps/*
-  - packages/*
 
 # Dependências autorizadas a executar scripts de instalação
 onlyBuiltDependencies:
@@ -10,7 +9,11 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
 
-# Scripts recusados de propósito: telemetria do swagger-ui e build nativo opcional do watch do Jest
+# Scripts recusados de propósito: telemetria do swagger-ui, build nativo opcional do watch do Jest
+# e builds nativos opcionais do cliente Docker usado pelo Testcontainers
 ignoredBuiltDependencies:
   - '@parcel/watcher'
   - '@scarf/scarf'
+  - cpu-features
+  - protobufjs
+  - ssh2

@@ -1,66 +1,98 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { ZodValidationException } from 'nestjs-zod';
+import { ZodError } from 'zod';
+import type { ErroDeCampo, ProblemDetails } from './problem-details.schema';
 
-/** Corpo de erro no formato RFC 9457 (application/problem+json). */
-export interface ProblemDetails {
-  type: string;
+export type { ErroDeCampo, ProblemDetails } from './problem-details.schema';
+
+const BASE_TIPO = 'https://solicitacoes.local/erros';
+
+interface TipoDeErro {
+  code: string;
+  slug: string;
   title: string;
-  status: number;
-  detail?: string;
-  instance: string;
-  requestId?: string;
 }
 
-const TITULOS: Partial<Record<number, string>> = {
-  [HttpStatus.BAD_REQUEST]: 'Requisição inválida',
-  [HttpStatus.UNAUTHORIZED]: 'Não autenticado',
-  [HttpStatus.FORBIDDEN]: 'Acesso negado',
-  [HttpStatus.NOT_FOUND]: 'Recurso não encontrado',
-  [HttpStatus.CONFLICT]: 'Conflito',
-  [HttpStatus.TOO_MANY_REQUESTS]: 'Muitas requisições',
-  [HttpStatus.INTERNAL_SERVER_ERROR]: 'Erro interno',
-  [HttpStatus.SERVICE_UNAVAILABLE]: 'Serviço indisponível',
+const DADOS_INVALIDOS: TipoDeErro = {
+  code: 'DADOS_INVALIDOS',
+  slug: 'dados-invalidos',
+  title: 'Dados inválidos',
+};
+const NAO_ENCONTRADO: TipoDeErro = {
+  code: 'NAO_ENCONTRADO',
+  slug: 'nao-encontrado',
+  title: 'Recurso não encontrado',
+};
+const ERRO_INTERNO: TipoDeErro = {
+  code: 'ERRO_INTERNO',
+  slug: 'erro-interno',
+  title: 'Erro interno',
+};
+const REQUISICAO_INVALIDA: TipoDeErro = {
+  code: 'REQUISICAO_INVALIDA',
+  slug: 'requisicao-invalida',
+  title: 'Requisição inválida',
 };
 
-function tituloPara(status: number): string {
-  return TITULOS[status] ?? (status >= 500 ? 'Erro interno' : 'Erro na requisição');
+const POR_STATUS: Partial<Record<number, TipoDeErro>> = {
+  [HttpStatus.BAD_REQUEST]: DADOS_INVALIDOS,
+  [HttpStatus.NOT_FOUND]: NAO_ENCONTRADO,
+};
+
+// Mensagem padrão do Express/Nest para rota inexistente ("Cannot GET /x").
+const ROTA_INEXISTENTE = /^Cannot [A-Z]+ /;
+
+function tipoPara(status: number): TipoDeErro {
+  if (status >= 500) return ERRO_INTERNO;
+  return POR_STATUS[status] ?? REQUISICAO_INVALIDA;
 }
 
 function detalheDe(excecao: HttpException): string | undefined {
+  if (excecao instanceof ZodValidationException) {
+    return 'Um ou mais campos estão inválidos.';
+  }
   const resposta = excecao.getResponse();
-  if (typeof resposta === 'string') return resposta;
-  const mensagem = (resposta as { message?: unknown }).message;
-  if (typeof mensagem === 'string') return mensagem;
+  const mensagem =
+    typeof resposta === 'string' ? resposta : (resposta as { message?: unknown }).message;
+  if (typeof mensagem === 'string') {
+    return ROTA_INEXISTENTE.test(mensagem) ? 'O recurso solicitado não existe.' : mensagem;
+  }
   if (Array.isArray(mensagem)) return mensagem.join('; ');
   return undefined;
 }
 
+function errosDeCampo(excecao: HttpException): ErroDeCampo[] | undefined {
+  if (!(excecao instanceof ZodValidationException)) return undefined;
+  const erro = excecao.getZodError();
+  if (!(erro instanceof ZodError)) return undefined;
+  return erro.issues.map((issue) => ({
+    campo: issue.path.map(String).join('.'),
+    mensagem: issue.message,
+  }));
+}
+
 /**
  * Converte qualquer exceção em Problem Details.
- * Erros inesperados nunca expõem detalhes internos: só o requestId para achar o log.
+ * Erros 5xx nunca expõem detalhes internos: só o requestId, para achar o log.
  */
 export function paraProblemDetails(
   excecao: unknown,
   contexto: { instance: string; requestId?: string },
 ): ProblemDetails {
-  if (excecao instanceof HttpException) {
-    const status = excecao.getStatus();
-    const detail = status < 500 ? detalheDe(excecao) : undefined;
-    return {
-      type: 'about:blank',
-      title: tituloPara(status),
-      status,
-      ...(detail ? { detail } : {}),
-      instance: contexto.instance,
-      ...(contexto.requestId ? { requestId: contexto.requestId } : {}),
-    };
-  }
+  const status =
+    excecao instanceof HttpException ? excecao.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+  const tipo = tipoPara(status);
+  const detail = excecao instanceof HttpException && status < 500 ? detalheDe(excecao) : undefined;
+  const errors = excecao instanceof HttpException ? errosDeCampo(excecao) : undefined;
 
   return {
-    type: 'about:blank',
-    title: tituloPara(HttpStatus.INTERNAL_SERVER_ERROR),
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    detail: 'Ocorreu um erro inesperado. Informe o requestId ao suporte.',
+    type: `${BASE_TIPO}/${tipo.slug}`,
+    title: tipo.title,
+    status,
+    ...(detail ? { detail } : {}),
     instance: contexto.instance,
+    code: tipo.code,
     ...(contexto.requestId ? { requestId: contexto.requestId } : {}),
+    ...(errors ? { errors } : {}),
   };
 }

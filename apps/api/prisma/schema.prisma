@@ -8,8 +8,9 @@ datasource db {
   provider = "postgresql"
 }
 
-// Regras que o Prisma não representa (CHECKs e permissões dos papéis)
-// ficam em SQL dentro das migrations.
+// O que o Prisma não representa fica em SQL escrito à mão dentro das migrations:
+// CHECKs, permissões dos papéis, extensões, o schema `app` (funções de contexto e de busca)
+// e o índice de busca sem acento.
 
 enum Cargo {
   SOLICITANTE
@@ -42,6 +43,7 @@ enum TipoEvento {
   ANALISE_INICIADA
   APROVADA
   REJEITADA
+  REABERTA
   EXCLUIDA
 
   @@map("tipo_evento")
@@ -75,9 +77,32 @@ model Usuario {
   analises     Solicitacao[]          @relation("Analista")
   decisoes     Solicitacao[]          @relation("DecididoPor")
   eventos      SolicitacaoHistorico[]
+  sessoes      Sessao[]
 
   @@index([areaId])
   @@map("usuarios")
+}
+
+// Sessões de refresh token. Cada login abre uma família; cada renovação cria a próxima sessão dela.
+// Só o hash do token é gravado.
+model Sessao {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuarioId       String    @map("usuario_id") @db.Uuid
+  familiaId       String    @map("familia_id") @db.Uuid
+  refreshHash     String    @unique @map("refresh_hash")
+  expiraEm        DateTime  @map("expira_em") @db.Timestamptz(3)
+  usadoEm         DateTime? @map("usado_em") @db.Timestamptz(3)
+  revogadaEm      DateTime? @map("revogada_em") @db.Timestamptz(3)
+  motivoRevogacao String?   @map("motivo_revogacao") @db.VarChar(40)
+  ip              String?   @db.VarChar(45)
+  userAgent       String?   @map("user_agent")
+  criadoEm        DateTime  @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@index([usuarioId])
+  @@index([familiaId])
+  @@map("sessoes")
 }
 
 model Solicitacao {

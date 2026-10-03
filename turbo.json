@@ -24,6 +24,14 @@
       "dependsOn": ["^build", "generate"],
       "cache": false,
       "persistent": true
+    },
+    "openapi:generate": {
+      "dependsOn": ["generate"],
+      "cache": false
+    },
+    "contract:generate": {
+      "dependsOn": ["api#openapi:generate"],
+      "cache": false
     }
   }
 }

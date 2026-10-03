@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { garantirRequestId } from '../context/request-id';
 import { paraProblemDetails } from './problem-details';
 
 @Catch()
@@ -8,12 +9,13 @@ export class ProblemDetailsFilter implements ExceptionFilter {
 
   catch(excecao: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
-    const requisicao = http.getRequest<Request & { id?: string | number }>();
+    const requisicao = http.getRequest<Request>();
     const resposta = http.getResponse<Response>();
 
     const problema = paraProblemDetails(excecao, {
-      instance: requisicao.originalUrl,
-      ...(requisicao.id !== undefined ? { requestId: String(requisicao.id) } : {}),
+      // Só o caminho: a query string pode trazer dados que não devem voltar no erro
+      instance: requisicao.originalUrl.split('?')[0] ?? requisicao.originalUrl,
+      requestId: garantirRequestId(requisicao, resposta),
     });
 
     if (problema.status >= 500) {

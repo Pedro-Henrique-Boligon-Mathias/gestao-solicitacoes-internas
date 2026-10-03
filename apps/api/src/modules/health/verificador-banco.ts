@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../database/prisma.service';
-
-export type EstadoComponente = 'up' | 'down';
+import { PrismaService } from '../../database/prisma.service';
+import type { EstadoComponente } from './health.dto';
 
 @Injectable()
 export class VerificadorBanco {

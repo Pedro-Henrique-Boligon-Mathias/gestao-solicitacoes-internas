@@ -19,7 +19,7 @@ export default defineConfig(
   },
   {
     // Testes usam mocks e o supertest, que devolve `any` no corpo da resposta
-    files: ['**/*.spec.ts'],
+    files: ['**/*.spec.ts', 'test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',

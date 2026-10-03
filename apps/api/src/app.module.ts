@@ -1,12 +1,13 @@
-import { randomUUID } from 'node:crypto';
+import './config/zod';
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { LoggerModule } from 'nestjs-pino';
-import { validarEnv, type Env } from './config/env';
+import { ConfigModule } from '@nestjs/config';
+import { APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
+import { ContextoModule } from './common/context/contexto.module';
+import { LoggingModule } from './common/logging/logging.module';
+import { validarEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
-import { HealthModule } from './health/health.module';
-
-const REQUEST_ID_VALIDO = /^[\w-]{1,100}$/;
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -17,30 +18,15 @@ const REQUEST_ID_VALIDO = /^[\w-]{1,100}$/;
       envFilePath: ['.env', '../../.env'],
       ignoreEnvFile: process.env.NODE_ENV === 'production',
     }),
-    LoggerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<Env, true>) => ({
-        pinoHttp: {
-          level: config.get('LOG_LEVEL', { infer: true }),
-          genReqId: (req, res) => {
-            const recebido = req.headers['x-request-id'];
-            const id =
-              typeof recebido === 'string' && REQUEST_ID_VALIDO.test(recebido)
-                ? recebido
-                : randomUUID();
-            res.setHeader('X-Request-Id', id);
-            return id;
-          },
-          redact: ['req.headers.authorization', 'req.headers.cookie'],
-          autoLogging: { ignore: (req) => req.url?.startsWith('/health') ?? false },
-          ...(config.get('NODE_ENV', { infer: true }) === 'development'
-            ? { transport: { target: 'pino-pretty', options: { singleLine: true } } }
-            : {}),
-        },
-      }),
-    }),
+    LoggingModule,
+    ContextoModule,
     DatabaseModule,
     HealthModule,
+  ],
+  providers: [
+    // DTOs zod validam body, params e query, e as respostas marcadas com @ZodSerializerDto
+    { provide: APP_PIPE, useClass: ZodValidationPipe },
+    { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
   ],
 })
 export class AppModule {}
