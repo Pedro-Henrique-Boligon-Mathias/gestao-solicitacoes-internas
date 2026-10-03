@@ -118,6 +118,8 @@ export function BlocoStatus({
   return (
     <Link
       href={`/solicitacoes?status=${status}`}
+      // Nome falado inteiro: "Aprovadas: 14 solicitações, 35% do total"
+      aria-label={`${ROTULO_STATUS_PLURAL[status]}: ${valor} ${valor === 1 ? 'solicitação' : 'solicitações'}, ${pct}% do total`}
       className="bg-tile rounded-card hover:bg-muted/60 focus-visible:outline-ring flex min-w-0 flex-col gap-3 px-5 py-[18px] transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 max-[760px]:px-4 max-[760px]:py-3.5"
     >
       <span className="flex items-center justify-between gap-2">

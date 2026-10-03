@@ -232,6 +232,27 @@ describe('RF-04: dashboard', () => {
     },
   );
 
+  it('RF-04: o nome acessível do bloco separa rótulo, número e percentual', async () => {
+    await renderizar(CARLA);
+
+    // Rótulo, número e percentual separados (antes saía algo como "Aprovadas1435% do total")
+    expect(
+      screen.getByRole('link', { name: /^Aprovadas\s*:\s*14 solicitações\s*,\s*35% do total$/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('RF-04: com uma única solicitação no status, o nome acessível fica no singular', async () => {
+    await renderizar(CARLA, {
+      resumo: ok(
+        resumo({ total: 4, porStatus: { ABERTA: 1, EM_ANALISE: 1, APROVADA: 1, REJEITADA: 1 } }),
+      ),
+    });
+
+    expect(
+      screen.getByRole('link', { name: 'Aprovadas: 1 solicitação, 25% do total' }),
+    ).toBeInTheDocument();
+  });
+
   it('RF-04: percentuais sem casas decimais', async () => {
     const { container } = await renderizar(CARLA, {
       resumo: ok(

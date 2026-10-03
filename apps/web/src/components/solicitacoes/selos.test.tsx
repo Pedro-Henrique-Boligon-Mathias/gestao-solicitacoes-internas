@@ -18,6 +18,23 @@ describe('ADR-013: selos de status e prioridade (nunca só cor)', () => {
     expect(container).not.toHaveTextContent(status);
   });
 
+  it('ADR-013: o SeloStatus anuncia "Status: …" para o leitor de tela, sem mudar o texto visível', () => {
+    const { container } = render(<SeloStatus status="APROVADA" />);
+
+    // O prefixo é só para leitor de tela; o texto visível continua "Aprovada"
+    expect(container).toHaveTextContent(/^Status: Aprovada$/);
+    expect(container.querySelector('.sr-only')).toHaveTextContent('Status:');
+    expect(screen.getByText('Aprovada')).toBeInTheDocument();
+  });
+
+  it('ADR-013: o SeloPrioridade anuncia "Prioridade: …" para o leitor de tela, sem mudar o texto visível', () => {
+    const { container } = render(<SeloPrioridade prioridade="ALTA" />);
+
+    expect(container).toHaveTextContent(/^Prioridade: Alta$/);
+    expect(container.querySelector('.sr-only')).toHaveTextContent('Prioridade:');
+    expect(screen.getByText('Alta')).toBeInTheDocument();
+  });
+
   it('ADR-013: o ponto colorido do SeloStatus é decorativo (aria-hidden)', () => {
     const { container } = render(<SeloStatus status="APROVADA" />);
 
