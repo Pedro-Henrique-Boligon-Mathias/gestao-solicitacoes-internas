@@ -1,4 +1,4 @@
-import { createZodDto } from 'nestjs-zod';
+import { createZodDto } from '../../common/zod/create-zod-dto';
 import { z } from 'zod';
 
 export const estadoComponenteSchema = z.enum(['up', 'down']);

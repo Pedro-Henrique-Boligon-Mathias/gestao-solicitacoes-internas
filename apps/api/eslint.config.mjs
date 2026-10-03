@@ -18,6 +18,25 @@ export default defineConfig(
     },
   },
   {
+    files: ['src/**/*.ts'],
+    ignores: ['src/common/zod/create-zod-dto.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'nestjs-zod',
+              importNames: ['createZodDto'],
+              message:
+                'Use o createZodDto de src/common/zod/create-zod-dto: o original gera OpenAPI errado para tipos nuláveis.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Testes usam mocks e o supertest, que devolve `any` no corpo da resposta
     files: ['**/*.spec.ts', 'test/**/*.ts'],
     rules: {

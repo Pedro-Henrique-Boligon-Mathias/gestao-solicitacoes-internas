@@ -88,9 +88,8 @@
       "^(\\.{1,2}/.*)\\.js$": "$1"
     },
     "collectCoverageFrom": [
-      "src/**/*.ts",
-      "!src/generated/**",
-      "!src/main.ts"
+      "src/modules/solicitacoes/domain/**/*.ts",
+      "!**/*.spec.ts"
     ],
     "coverageThreshold": {
       "./src/modules/solicitacoes/domain/": {

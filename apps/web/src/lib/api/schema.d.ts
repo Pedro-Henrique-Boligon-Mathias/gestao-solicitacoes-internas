@@ -286,7 +286,7 @@ export interface components {
                 nome: string;
             };
             /** @description Comentário da decisão ou justificativa da reabertura */
-            comentario: string[];
+            comentario: string | null;
             /** Format: date-time */
             criadoEm: string;
             /** @description EDITADA: { campo: { antes, depois } }; REABERTA: { decisaoAnterior: { resultado, comentario, decididoEm, decididoPor, analista } } */
