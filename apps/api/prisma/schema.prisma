@@ -49,6 +49,14 @@ enum TipoEvento {
   @@map("tipo_evento")
 }
 
+enum StatusOutbox {
+  PENDENTE
+  ENVIADO
+  FALHOU
+
+  @@map("status_outbox")
+}
+
 model Area {
   id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nome     String   @unique @db.VarChar(80)
@@ -128,6 +136,7 @@ model Solicitacao {
   analista    Usuario?               @relation("Analista", fields: [analistaId], references: [id], onDelete: Restrict)
   decididoPor Usuario?               @relation("DecididoPor", fields: [decididoPorId], references: [id], onDelete: Restrict)
   historico   SolicitacaoHistorico[]
+  eventos     OutboxEvento[]
 
   @@index([dataSolicitacao(sort: Desc)])
   @@index([solicitanteId, dataSolicitacao(sort: Desc)])
@@ -158,4 +167,27 @@ model SolicitacaoHistorico {
   @@index([solicitacaoId, criadoEm])
   @@index([autorId])
   @@map("solicitacao_historico")
+}
+
+// Transactional Outbox (ADR-010): eventos gravados na mesma transação da mudança de status e
+// entregues ao sistema externo pelo worker. O `id` é a chave de idempotência do envio.
+model OutboxEvento {
+  id                 String       @id @db.Uuid
+  tipo               String       @db.VarChar(60)
+  agregadoId         String       @map("agregado_id") @db.Uuid
+  payload            Json
+  status             StatusOutbox @default(PENDENTE)
+  tentativas         Int          @default(0)
+  proximaTentativaEm DateTime     @default(dbgenerated("clock_timestamp()")) @map("proxima_tentativa_em") @db.Timestamptz(6)
+  ultimoErro         String?      @map("ultimo_erro")
+  correlationId      String?      @map("correlation_id") @db.VarChar(100)
+  // clock_timestamp(): a ordem de envio por solicitação segue a ordem real das gravações
+  criadoEm           DateTime     @default(dbgenerated("clock_timestamp()")) @map("criado_em") @db.Timestamptz(6)
+  enviadoEm          DateTime?    @map("enviado_em") @db.Timestamptz(6)
+
+  solicitacao Solicitacao @relation(fields: [agregadoId], references: [id], onDelete: Restrict)
+
+  @@index([status, proximaTentativaEm])
+  @@index([agregadoId, criadoEm])
+  @@map("outbox_eventos")
 }
