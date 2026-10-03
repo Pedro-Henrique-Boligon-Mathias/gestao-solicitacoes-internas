@@ -91,6 +91,8 @@ describe('Solicitações: criação, edição, exclusão e comandos', () => {
         atualizadoEm: expect.stringMatching(ISO_UTC),
         versao: 1,
         acoesPermitidas: expect.any(Array),
+        // ADR-010: sem evento de integração
+        integracao: null,
       });
       expect(ordenar(corpo.acoesPermitidas)).toEqual(['EDITAR', 'EXCLUIR']);
       const data = Date.parse(corpo.dataSolicitacao);

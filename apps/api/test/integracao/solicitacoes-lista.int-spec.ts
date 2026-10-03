@@ -260,4 +260,72 @@ describe('GET /solicitacoes: busca, filtros, ordenação e paginação', () => {
       expect((await api(app).get('/solicitacoes')).status).toBe(401);
     });
   });
+
+  describe('Filtro por área (area=<id>, pode repetir)', () => {
+    const areas: Record<string, string> = {};
+
+    beforeAll(async () => {
+      const resultado = await owner.query<{ id: string; nome: string }>(
+        'SELECT id, nome FROM areas',
+      );
+      for (const area of resultado.rows) areas[area.nome] = area.id;
+    });
+
+    /** Quantas solicitações não excluídas existem nessas áreas (app_owner, sem RLS). */
+    async function totalNoBanco(areaIds: string[]): Promise<number> {
+      const resultado = await owner.query<{ total: number }>(
+        `SELECT count(*)::int AS total FROM solicitacoes
+          WHERE excluido_em IS NULL AND area_id = ANY($1::uuid[])`,
+        [areaIds],
+      );
+      return resultado.rows[0]!.total;
+    }
+
+    it('RF-02: area=<id> traz só as solicitações da área, com o total do banco', async () => {
+      const financeiro = areas['Financeiro']!;
+      const lista = await listar(app, carla, `area=${financeiro}&pageSize=100`);
+
+      expect(lista.meta.total).toBe(await totalNoBanco([financeiro]));
+      expect(lista.meta.total).toBeGreaterThan(0);
+      expect(new Set(lista.data.map((item) => item.area.id))).toEqual(new Set([financeiro]));
+    });
+
+    it('RF-02: area repetida (area=A&area=B) traz as das duas áreas', async () => {
+      const ids = [areas['Financeiro']!, areas['Tecnologia']!];
+      const lista = await listar(app, carla, `area=${ids[0]}&area=${ids[1]}&pageSize=100`);
+
+      expect(lista.meta.total).toBe(await totalNoBanco(ids));
+      expect(lista.data.every((item) => ids.includes(item.area.id))).toBe(true);
+      expect(new Set(lista.data.map((item) => item.area.id)).size).toBe(2);
+    });
+
+    it('RF-02: area combinada com status', async () => {
+      const financeiro = areas['Financeiro']!;
+      const lista = await listar(app, carla, `area=${financeiro}&status=APROVADA&pageSize=100`);
+
+      expect(
+        lista.data.every((item) => item.area.id === financeiro && item.status === 'APROVADA'),
+      ).toBe(true);
+    });
+
+    it('RN-13: o solicitante filtrando por área continua vendo só as próprias', async () => {
+      const pessoa = await entrarComSolicitanteNovo(app, owner);
+      const minha = await criarSolicitacao(app, pessoa);
+
+      const lista = await listar(app, pessoa, `area=${minha.area.id}`);
+
+      expect(lista.data.map((item) => item.id)).toEqual([minha.id]);
+    });
+
+    it.each(['area=abc', 'area=123', `area=${encodeURIComponent('Financeiro')}`])(
+      'RF-02: %s (não é UUID) → 400 DADOS_INVALIDOS',
+      async (query) => {
+        esperarProblema(
+          await api(app, carla).get(`/solicitacoes?${query}`),
+          400,
+          'DADOS_INVALIDOS',
+        );
+      },
+    );
+  });
 });

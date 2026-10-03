@@ -11,6 +11,11 @@ export type Prioridade = Solicitacao['prioridade'];
 export type AcaoPermitida = Solicitacao['acoesPermitidas'][number];
 export type ResultadoDecisao = Schemas['DecisaoDto']['resultado'];
 export type Pessoa = Solicitacao['solicitante'];
+/** Integração com o sistema externo (ADR-010): campos de topo do evento em foco. */
+export type Integracao = NonNullable<Solicitacao['integracao']>;
+export type EventoIntegracao = Integracao['eventos'][number];
+export type StatusIntegracao = Integracao['status'];
+export type TipoEventoIntegracao = Integracao['tipo'];
 
 /**
  * Evento do histórico. O `comentario` chega como texto ou null; o tipo é fixado aqui para não

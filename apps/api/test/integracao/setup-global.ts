@@ -7,6 +7,7 @@ import {
   SENHA_OWNER,
   SENHA_RUNTIME,
   SENHA_SUPERUSUARIO,
+  SENHA_WORKER,
   VARIAVEIS,
   urlBanco,
 } from './ambiente';
@@ -21,7 +22,11 @@ export default async function setupGlobal(): Promise<void> {
     .withDatabase(BANCO_PRINCIPAL)
     .withUsername('postgres')
     .withPassword(SENHA_SUPERUSUARIO)
-    .withEnvironment({ APP_OWNER_PASSWORD: SENHA_OWNER, APP_RUNTIME_PASSWORD: SENHA_RUNTIME })
+    .withEnvironment({
+      APP_OWNER_PASSWORD: SENHA_OWNER,
+      APP_RUNTIME_PASSWORD: SENHA_RUNTIME,
+      APP_WORKER_PASSWORD: SENHA_WORKER,
+    })
     .withCopyFilesToContainer([
       {
         source: path.join(RAIZ_REPOSITORIO, 'infra', 'db', 'init', '01-papeis.sh'),

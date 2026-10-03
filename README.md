@@ -23,7 +23,9 @@ Pré-requisito: [Docker](https://docs.docker.com/get-docker/) com Docker Compose
 docker compose up --build
 ```
 
-O Compose sobe o banco, aplica as migrations, roda o seed e inicia a API e a interface web. Os valores padrão servem para uso local. Para trocá-los, copie `.env.example` para `.env` e edite.
+O Compose sobe o banco, aplica as migrations, roda o seed e inicia a API, a interface web, o worker de integração e o simulador do sistema externo (`ext-mock`). Os valores padrão servem para uso local. Para trocá-los, copie `.env.example` para `.env` e edite.
+
+> **Volume criado antes da integração externa?** O papel `app_worker` é criado só na primeira subida do banco. Se o volume já existia, recrie-o: `docker compose down --volumes && docker compose up --build`.
 
 | Serviço                       | Endereço                                |
 | ----------------------------- | --------------------------------------- |
@@ -31,6 +33,7 @@ O Compose sobe o banco, aplica as migrations, roda o seed e inicia a API e a int
 | API                           | http://localhost:3001                   |
 | Documentação da API (Swagger) | http://localhost:3001/api/docs          |
 | PostgreSQL                    | `localhost:5432` (banco `solicitacoes`) |
+| Sistema externo (simulador)   | http://127.0.0.1:4010/eventos           |
 
 Para parar e apagar os dados: `docker compose down --volumes`.
 
@@ -41,6 +44,7 @@ Todas têm padrão local no `compose.yaml`; o `.env.example` traz os mesmos valo
 | Variável                                                          | Padrão local                                          | Uso                                                                                                  |
 | ----------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `POSTGRES_PASSWORD`, `APP_OWNER_PASSWORD`, `APP_RUNTIME_PASSWORD` | `postgres-local`, `owner-local`, `runtime-local`      | Senhas do superusuário e dos papéis do banco                                                         |
+| `APP_WORKER_PASSWORD`                                             | `worker-local`                                        | Senha do papel `app_worker`, usado pelo worker de integração                                         |
 | `DB_PORT`                                                         | `5432`                                                | Porta do Postgres no host                                                                            |
 | `SEED_PASSWORD`                                                   | `Demo@2026`                                           | Senha dos usuários de demonstração                                                                   |
 | `JWT_SECRET`                                                      | `segredo-local-de-desenvolvimento-troque-em-producao` | Assinatura dos access tokens (HS256). Obrigatória, com 32+ caracteres; troque fora do ambiente local |
@@ -48,7 +52,13 @@ Todas têm padrão local no `compose.yaml`; o `.env.example` traz os mesmos valo
 | `REFRESH_TOKEN_DIAS`                                              | `7`                                                   | Validade de cada refresh token                                                                       |
 | `REFRESH_GRACA_SEGUNDOS`                                          | `10`                                                  | Janela em que um refresh recém-trocado ainda é aceito (duas abas renovando juntas)                   |
 | `COOKIE_SECURE`                                                   | `false`                                               | Marca os cookies de sessão como `Secure`. Use `true` só atrás de HTTPS                               |
-| `LOG_LEVEL`                                                       | `info`                                                | Nível dos logs da API                                                                                |
+| `LOG_LEVEL`                                                       | `info`                                                | Nível dos logs da API e do worker                                                                    |
+| `OUTBOX_INTERVALO_MS`                                             | `2000`                                                | Intervalo entre os ciclos do worker                                                                  |
+| `OUTBOX_LOTE`                                                     | `10`                                                  | Eventos enviados por ciclo                                                                           |
+| `OUTBOX_TIMEOUT_MS`                                               | `5000`                                                | Tempo máximo de cada envio ao sistema externo                                                        |
+| `OUTBOX_BACKOFF_BASE_MS`, `OUTBOX_BACKOFF_MAX_MS`                 | `2000`, `60000`                                       | Backoff: base × 2^(tentativas − 1), até o teto, com jitter de ±20%. Em produção: 30 s e 2 h          |
+| `OUTBOX_MAX_TENTATIVAS`                                           | `8`                                                   | Tentativas automáticas antes de `FALHOU`; a API mostra "tentativa N de M" com o mesmo valor          |
+| `MOCK_FAILURE_RATE`                                               | `0.5`                                                 | Probabilidade (0 a 1) de o simulador responder 503                                                   |
 
 ### Usuários de demonstração
 
@@ -63,6 +73,19 @@ Criados pelo seed. A senha de todos é o valor de `SEED_PASSWORD` (padrão `Demo
 | Rafael Costa | rafael.costa@demo.test | Analista      | Tecnologia       |
 | Diego Alves  | diego.alves@demo.test  | Administrador | Tecnologia       |
 
+### Integração com o sistema externo
+
+Aprovar uma solicitação grava o evento `SolicitacaoAprovada` na tabela `outbox_eventos`, na mesma transação da aprovação; reabrir uma aprovada grava `SolicitacaoReaberta`. O worker entrega os eventos ao simulador com `Idempotency-Key` (id do evento) e `X-Correlation-Id` (o `requestId` da aprovação), em ordem por solicitação. Falhas transitórias (rede, tempo esgotado, 5xx, 408, 429) ganham nova tentativa com backoff; erros permanentes (outros 4xx) ou tentativas esgotadas deixam o evento em `FALHOU`, e o administrador pode reprocessá-lo no detalhe da solicitação.
+
+Para ver funcionando (com `MOCK_FAILURE_RATE=0.5`, o padrão):
+
+1. Entre como Carla (analista), inicie a análise de uma solicitação e aprove-a.
+2. Acompanhe as tentativas no log do worker: `docker compose logs -f worker`. Cada linha traz `eventoId`, `tentativa`, `statusHttp`, `latenciaMs`, `resultado` e, nas falhas, `proximaTentativaEm`.
+3. Confira o que o sistema externo recebeu, cada evento uma única vez: `curl 127.0.0.1:4010/eventos`.
+4. O detalhe da solicitação mostra a integração como enviada.
+
+Para ver uma falha definitiva e o reprocessamento: `MOCK_FAILURE_RATE=1 OUTBOX_MAX_TENTATIVAS=3 docker compose up -d worker ext-mock api`, aprove uma solicitação, espere o `FALHOU` e, com a taxa de volta a `0`, reprocesse como Diego (administrador).
+
 ## Desenvolvimento local
 
 Pré-requisitos: Node.js 24+, pnpm 10 (`corepack enable` ou `npm install -g pnpm@10`) e Docker.
@@ -76,7 +99,7 @@ pnpm db:seed
 pnpm dev
 ```
 
-O `pnpm dev` sobe a API (porta 3001) e a web (porta 3000) com recarga automática.
+O `pnpm dev` sobe a API (porta 3001), a web (porta 3000) e o simulador do sistema externo (porta 4010) com recarga automática. O worker roda à parte, depois de um build da API: `pnpm --filter api build && node apps/api/dist/worker.js`.
 
 ### Scripts
 
@@ -106,9 +129,11 @@ O `pnpm dev` sobe a API (porta 3001) e a web (porta 3000) com recarga automátic
 │   │   │   ├── common/       # erros (Problem Details), guards, decorators, contexto e logs
 │   │   │   ├── config/       # validação das variáveis de ambiente
 │   │   │   ├── database/     # cliente Prisma e transação com contexto do usuário
-│   │   │   ├── modules/      # módulos de negócio (auth: sessões; health: liveness e readiness)
-│   │   │   └── openapi/      # geração do contrato
+│   │   │   ├── modules/      # módulos de negócio (auth, solicitacoes, integracoes: outbox e worker)
+│   │   │   ├── openapi/      # geração do contrato
+│   │   │   └── worker.ts     # worker da outbox (node dist/worker.js)
 │   │   └── test/             # testes HTTP e de integração (integracao/)
+│   ├── ext-mock/             # simulador do sistema externo (Node, sem framework)
 │   └── web/                  # Next.js
 │       └── src/
 │           ├── app/          # rotas (App Router)
@@ -128,7 +153,8 @@ O `pnpm dev` sobe a API (porta 3001) e a web (porta 3000) com recarga automátic
   ```
 
 - **O navegador só conversa com o Next.** As chamadas à API são feitas pelo servidor do Next, na rede interna do Docker.
-- **Dois papéis no banco.** `app_owner` é dono do schema e roda migrations e seed. `app_runtime` é o único papel usado pela API: lê e grava solicitações e sessões, mas não apaga nada, não altera o histórico e não acessa a tabela de migrations.
+- **Três papéis no banco.** `app_owner` é dono do schema e roda migrations e seed. `app_runtime` é o único papel usado pela API: lê e grava solicitações e sessões, mas não apaga nada, não altera o histórico e não acessa a tabela de migrations; na outbox, grava eventos e lê só as colunas de status. `app_worker` é o do worker: lê e atualiza só a outbox.
+- **Transactional Outbox.** O evento de integração nasce na mesma transação da mudança de status: se ela falhar, o evento não existe. O worker trava cada evento com `FOR UPDATE SKIP LOCKED`, então várias réplicas não enviam o mesmo evento. O healthcheck do worker lê o arquivo de heartbeat gravado no fim de cada ciclo.
 - **Contexto do usuário no banco.** A API grava o usuário e o cargo com `set_config` local à transação; as funções `app.usuario_atual()` e `app.cargo_atual()` leem esse contexto e devolvem `NULL` fora dele.
 - **Busca sem acento.** `app.sem_acento()` (extensão `unaccent`) com índice trigram (`pg_trgm`): buscar "solicitacao" encontra "Solicitação".
 - **Integridade no banco.** CHECKs garantem que uma solicitação decidida sempre tenha comentário, data e autor da decisão, que decisões e reaberturas no histórico tenham comentário, e que ninguém analise ou decida a própria solicitação.

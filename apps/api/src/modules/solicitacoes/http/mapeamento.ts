@@ -1,8 +1,9 @@
 import type { EventoDetalhado, ItemSolicitacao } from '../application/repositorio-solicitacoes';
-import type { Pagina, SolicitacaoComAcoes } from '../application/solicitacoes.service';
+import type { Integracao, Pagina, SolicitacaoComAcoes } from '../application/solicitacoes.service';
 import { formatarCodigo } from '../domain/codigo';
 import type {
   EventoHistoricoDto,
+  IntegracaoDto,
   ItemListaDto,
   PaginaSolicitacoesDto,
   SolicitacaoDto,
@@ -52,6 +53,28 @@ export function paraSolicitacao(solicitacao: SolicitacaoComAcoes): SolicitacaoDt
         : null,
     versao: solicitacao.versao,
     acoesPermitidas: solicitacao.acoesPermitidas,
+    integracao: solicitacao.integracao ? paraIntegracao(solicitacao.integracao) : null,
+  };
+}
+
+/** Só as colunas de status da outbox: payload, último erro e correlation id não saem da API. */
+export function paraIntegracao(integracao: Integracao): IntegracaoDto {
+  return {
+    status: integracao.status,
+    tipo: integracao.tipo,
+    tentativas: integracao.tentativas,
+    maxTentativas: integracao.maxTentativas,
+    proximaTentativaEm: integracao.proximaTentativaEm.toISOString(),
+    enviadaEm: integracao.enviadaEm?.toISOString() ?? null,
+    aguardando: integracao.aguardando,
+    eventos: integracao.eventos.map((evento) => ({
+      id: evento.id,
+      tipo: evento.tipo,
+      status: evento.status,
+      tentativas: evento.tentativas,
+      criadoEm: evento.criadoEm.toISOString(),
+      enviadaEm: evento.enviadoEm?.toISOString() ?? null,
+    })),
   };
 }
 

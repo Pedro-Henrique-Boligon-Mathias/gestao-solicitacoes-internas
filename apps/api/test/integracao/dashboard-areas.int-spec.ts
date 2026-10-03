@@ -167,8 +167,15 @@ describe('RF-04: GET /dashboard/resumo e GET /areas', () => {
       );
     });
 
-    it('sem token → 401', async () => {
-      expect((await api(app).get('/areas')).status).toBe(401);
+    it('ADR-012: é pública — sem token → 200 com as mesmas áreas', async () => {
+      const comToken = await api(app, ana).get('/areas').expect(200);
+      const semToken = await api(app).get('/areas').expect(200);
+      expect(semToken.body).toEqual(comToken.body);
+    });
+
+    it('ADR-012: com token inválido também responde 200 (a rota ignora a autenticação)', async () => {
+      const resposta = await api(app, { ...ana, token: 'token-invalido' }).get('/areas');
+      expect(resposta.status).toBe(200);
     });
   });
 });

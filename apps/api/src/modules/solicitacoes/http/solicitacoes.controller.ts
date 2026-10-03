@@ -44,7 +44,7 @@ const NAO_ENCONTRADA =
 const CORPO_INVALIDO = 'Corpo inválido ou com campos não aceitos (DADOS_INVALIDOS)';
 
 function executor(usuario: UsuarioAutenticado): Executor {
-  return { id: usuario.id, cargo: usuario.cargo, areaId: usuario.areaId };
+  return { id: usuario.id, nome: usuario.nome, cargo: usuario.cargo, areaId: usuario.areaId };
 }
 
 /**
@@ -227,6 +227,27 @@ export class SolicitacoesController {
     return paraSolicitacao(
       await this.solicitacoes.reabrir(executor(usuario), id, corpo.justificativa),
     );
+  }
+
+  @Post(':id/integracao/reprocessamento')
+  @HttpCode(HttpStatus.OK)
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiOperation({
+    operationId: 'reprocessarIntegracao',
+    summary:
+      'Devolve à fila o evento de integração em FALHOU mais antigo (PENDENTE, tentativas zeradas); administrador',
+  })
+  @ApiOkResponse({ type: SolicitacaoDto, description: 'Solicitação com a integração pendente' })
+  @ApiProblema(401, NAO_AUTENTICADO)
+  @ApiProblema(403, 'Não é administrador (ACESSO_NEGADO)')
+  @ApiProblema(404, NAO_ENCONTRADA)
+  @ApiProblema(409, 'A integração não está em FALHOU (TRANSICAO_INVALIDA)')
+  @ZodSerializerDto(SolicitacaoDto)
+  async reprocessarIntegracao(
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @Param('id') id: string,
+  ): Promise<SolicitacaoDto> {
+    return paraSolicitacao(await this.solicitacoes.reprocessarIntegracao(executor(usuario), id));
   }
 
   @Get(':id/historico')

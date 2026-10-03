@@ -21,7 +21,8 @@ export const EMAILS_SEED = {
 
 export type Apelido = keyof typeof EMAILS_SEED;
 
-export type Acao = 'EDITAR' | 'EXCLUIR' | 'INICIAR_ANALISE' | 'DECIDIR' | 'REABRIR';
+export type Acao =
+  'EDITAR' | 'EXCLUIR' | 'INICIAR_ANALISE' | 'DECIDIR' | 'REABRIR' | 'REPROCESSAR_INTEGRACAO';
 export type Status = 'ABERTA' | 'EM_ANALISE' | 'APROVADA' | 'REJEITADA';
 export type Prioridade = 'BAIXA' | 'MEDIA' | 'ALTA';
 
@@ -61,6 +62,33 @@ export interface Solicitacao extends ItemLista {
   } | null;
   versao: number;
   acoesPermitidas: Acao[];
+  integracao: Integracao | null;
+}
+
+export type StatusIntegracao = 'PENDENTE' | 'ENVIADO' | 'FALHOU';
+export type TipoEventoIntegracao = 'SolicitacaoAprovada' | 'SolicitacaoReaberta';
+
+/**
+ * Integração com o sistema externo (ADR-010). Os campos de topo são do evento em foco (o mais
+ * antigo ainda não ENVIADO; se todos foram, o mais recente); `aguardando` conta os não enviados
+ * depois dele; `eventos` traz todos, em ordem cronológica.
+ */
+export interface Integracao {
+  status: StatusIntegracao;
+  tipo: TipoEventoIntegracao;
+  tentativas: number;
+  maxTentativas: number;
+  proximaTentativaEm: string;
+  enviadaEm: string | null;
+  aguardando: number;
+  eventos: {
+    id: string;
+    tipo: TipoEventoIntegracao;
+    status: StatusIntegracao;
+    tentativas: number;
+    criadoEm: string;
+    enviadaEm: string | null;
+  }[];
 }
 
 export interface EventoHistorico {
@@ -218,6 +246,11 @@ export async function solicitacaoEm(
     status,
   ).expect(200);
   return decidida.body as Solicitacao;
+}
+
+/** ADR-010: reprocessamento da integração (Admin). */
+export function reprocessar(app: INestApplication<App>, sessao: Sessao, id: string) {
+  return api(app, sessao).post(`/solicitacoes/${id}/integracao/reprocessamento`).send();
 }
 
 export async function detalhe(

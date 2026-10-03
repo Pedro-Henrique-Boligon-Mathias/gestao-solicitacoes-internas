@@ -57,8 +57,16 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-      - name: Subir db, migrations, api e web
+      - name: Subir db, migrations, api, web, worker e ext-mock
         run: docker compose up --build --detach --wait --wait-timeout 600
+      - name: Worker e ext-mock saudáveis
+        run: |
+          for servico in worker ext-mock; do
+            estado=$(docker inspect --format '{{.State.Health.Status}}' "$(docker compose ps -q "$servico")")
+            echo "$servico: $estado"
+            test "$estado" = healthy
+          done
+          curl --fail --silent --show-error http://127.0.0.1:4010/health
       - name: API pronta e com banco
         run: curl --fail --silent --show-error http://127.0.0.1:3001/health/ready
       - name: Login na API com um usuário de demonstração

@@ -107,6 +107,11 @@ describe('ADR-005 / RN-13: RLS em solicitacoes e solicitacao_historico', () => {
            FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname`,
       );
       expect(resultado.rows).toEqual([
+        // ADR-010: a outbox também tem RLS (detalhes em outbox-permissoes.int-spec.ts)
+        { tabela: 'outbox_eventos', nome: 'outbox_insert', comando: 'INSERT' },
+        { tabela: 'outbox_eventos', nome: 'outbox_select', comando: 'SELECT' },
+        { tabela: 'outbox_eventos', nome: 'outbox_update', comando: 'UPDATE' },
+        { tabela: 'outbox_eventos', nome: 'outbox_worker', comando: 'ALL' },
         { tabela: 'solicitacao_historico', nome: 'historico_insert', comando: 'INSERT' },
         { tabela: 'solicitacao_historico', nome: 'historico_select', comando: 'SELECT' },
         { tabela: 'solicitacoes', nome: 'solicitacoes_insert', comando: 'INSERT' },

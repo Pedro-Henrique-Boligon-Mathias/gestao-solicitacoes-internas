@@ -10,6 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres-local}
       APP_OWNER_PASSWORD: ${APP_OWNER_PASSWORD:-owner-local}
       APP_RUNTIME_PASSWORD: ${APP_RUNTIME_PASSWORD:-runtime-local}
+      APP_WORKER_PASSWORD: ${APP_WORKER_PASSWORD:-worker-local}
     ports:
       - '${DB_PORT:-5432}:5432'
     volumes:
@@ -51,6 +52,8 @@ services:
       ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
       REFRESH_TOKEN_DIAS: ${REFRESH_TOKEN_DIAS:-7}
       REFRESH_GRACA_SEGUNDOS: ${REFRESH_GRACA_SEGUNDOS:-10}
+      # Mesmo limite do worker, para o detalhe mostrar "tentativa N de M"
+      OUTBOX_MAX_TENTATIVAS: ${OUTBOX_MAX_TENTATIVAS:-8}
     # Publicada só no loopback do host: de fora, a API é acessada pelo Next
     ports:
       - '127.0.0.1:3001:3001'
@@ -67,6 +70,66 @@ services:
       timeout: 5s
       retries: 6
       start_period: 10s
+
+  # Entrega os eventos da outbox ao sistema externo (mesma imagem da API, outro comando)
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    command: ['node', 'dist/worker.js']
+    init: true
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      WORKER_DATABASE_URL: postgresql://app_worker:${APP_WORKER_PASSWORD:-worker-local}@db:5432/solicitacoes
+      EXT_URL: http://ext-mock:4010
+      # Valores curtos para a demonstração: as novas tentativas aparecem em segundos
+      OUTBOX_INTERVALO_MS: ${OUTBOX_INTERVALO_MS:-2000}
+      OUTBOX_LOTE: ${OUTBOX_LOTE:-10}
+      OUTBOX_TIMEOUT_MS: ${OUTBOX_TIMEOUT_MS:-5000}
+      OUTBOX_BACKOFF_BASE_MS: ${OUTBOX_BACKOFF_BASE_MS:-2000}
+      OUTBOX_BACKOFF_MAX_MS: ${OUTBOX_BACKOFF_MAX_MS:-60000}
+      OUTBOX_MAX_TENTATIVAS: ${OUTBOX_MAX_TENTATIVAS:-8}
+      WORKER_HEARTBEAT_ARQUIVO: /tmp/worker-heartbeat
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      ext-mock:
+        condition: service_healthy
+    # Saudável se o último ciclo terminou há menos de 30 s
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const fs = require('node:fs'); try { const t = Date.parse(fs.readFileSync('/tmp/worker-heartbeat', 'utf8')); process.exit(Date.now() - t < 30000 ? 0 : 1); } catch { process.exit(1); }"
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Simulador do sistema corporativo que recebe os eventos
+  ext-mock:
+    build:
+      context: .
+      dockerfile: apps/ext-mock/Dockerfile
+    init: true
+    environment:
+      MOCK_PORTA: 4010
+      # Probabilidade (0 a 1) de responder 503: com 0.5, metade dos envios falha e o worker tenta de novo
+      MOCK_FAILURE_RATE: ${MOCK_FAILURE_RATE:-0.5}
+    ports:
+      - '127.0.0.1:4010:4010'
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4010/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   web:
     build:

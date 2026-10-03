@@ -4,11 +4,13 @@
       "AreaDto": {
         "properties": {
           "id": {
+            "example": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
             "type": "string"
           },
           "nome": {
+            "example": "Financeiro",
             "type": "string"
           }
         },
@@ -24,6 +26,7 @@
         "properties": {
           "descricao": {
             "description": "10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim",
+            "example": "Preciso de acesso de leitura ao módulo de cobrança para conciliar os boletos do mês.",
             "maxLength": 5000,
             "minLength": 10,
             "type": "string"
@@ -34,10 +37,12 @@
               "MEDIA",
               "ALTA"
             ],
+            "example": "ALTA",
             "type": "string"
           },
           "titulo": {
             "description": "5 a 120 caracteres, sem contar os espaços nas pontas",
+            "example": "Acesso ao sistema de cobrança",
             "maxLength": 120,
             "minLength": 5,
             "type": "string"
@@ -54,6 +59,7 @@
         "additionalProperties": false,
         "properties": {
           "comentario": {
+            "example": "Acesso liberado conforme a política de perfis de leitura.",
             "maxLength": 2000,
             "minLength": 10,
             "type": "string"
@@ -63,6 +69,7 @@
               "APROVADA",
               "REJEITADA"
             ],
+            "example": "APROVADA",
             "type": "string"
           }
         },
@@ -78,6 +85,7 @@
         "properties": {
           "descricao": {
             "description": "10 a 5000 caracteres, com pelo menos 10 que não sejam espaço; gravada sem trim",
+            "example": "Preciso de acesso de leitura ao módulo de cobrança para conciliar os boletos do mês.",
             "maxLength": 5000,
             "minLength": 10,
             "type": "string"
@@ -88,16 +96,19 @@
               "MEDIA",
               "ALTA"
             ],
+            "example": "MEDIA",
             "type": "string"
           },
           "titulo": {
             "description": "5 a 120 caracteres, sem contar os espaços nas pontas",
+            "example": "Acesso de leitura ao sistema de cobrança",
             "maxLength": 120,
             "minLength": 5,
             "type": "string"
           },
           "versao": {
             "description": "Versão lida; se outra pessoa alterou antes, a resposta é 409 CONFLITO_DE_VERSAO",
+            "example": 1,
             "maximum": 9007199254740991,
             "minimum": 1,
             "type": "integer"
@@ -111,6 +122,10 @@
       "EventoHistoricoDto": {
         "properties": {
           "autor": {
+            "example": {
+              "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+              "nome": "Carla Mendes"
+            },
             "properties": {
               "id": {
                 "format": "uuid",
@@ -129,10 +144,12 @@
           },
           "comentario": {
             "description": "Comentário da decisão ou justificativa da reabertura",
+            "example": "Acesso liberado conforme a política de perfis de leitura.",
             "nullable": true,
             "type": "string"
           },
           "criadoEm": {
+            "example": "2026-10-03T10:12:00.000Z",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "type": "string"
@@ -140,6 +157,7 @@
           "dados": {
             "additionalProperties": {},
             "description": "EDITADA: { campo: { antes, depois } }; REABERTA: { decisaoAnterior: { resultado, comentario, decididoEm, decididoPor, analista } }",
+            "example": null,
             "nullable": true,
             "propertyNames": {
               "type": "string"
@@ -147,6 +165,7 @@
             "type": "object"
           },
           "id": {
+            "example": "c7e1a9d3-5b2f-4c86-9e0a-4d6f8b2c1e57",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
             "type": "string"
@@ -159,6 +178,7 @@
               "REJEITADA",
               null
             ],
+            "example": "EM_ANALISE",
             "nullable": true,
             "type": "string"
           },
@@ -171,6 +191,7 @@
               "REJEITADA",
               null
             ],
+            "example": "APROVADA",
             "nullable": true,
             "type": "string"
           },
@@ -184,6 +205,7 @@
               "REABERTA",
               "EXCLUIDA"
             ],
+            "example": "APROVADA",
             "type": "string"
           }
         },
@@ -203,10 +225,12 @@
         "properties": {
           "email": {
             "description": "Aceita maiúsculas e espaços nas pontas (normalizado antes da busca)",
+            "example": "ana.souza@demo.test",
             "maxLength": 320,
             "type": "string"
           },
           "senha": {
+            "example": "Demo@2026",
             "maxLength": 256,
             "minLength": 1,
             "type": "string"
@@ -225,6 +249,10 @@
               "properties": {
                 "analista": {
                   "description": "Analista responsável; null até a análise começar",
+                  "example": {
+                    "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+                    "nome": "Carla Mendes"
+                  },
                   "nullable": true,
                   "properties": {
                     "id": {
@@ -244,6 +272,10 @@
                 },
                 "area": {
                   "description": "Área do solicitante na criação",
+                  "example": {
+                    "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+                    "nome": "Financeiro"
+                  },
                   "properties": {
                     "id": {
                       "format": "uuid",
@@ -261,20 +293,24 @@
                   "type": "object"
                 },
                 "atualizadoEm": {
+                  "example": "2026-10-03T10:12:00.000Z",
                   "format": "date-time",
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                   "type": "string"
                 },
                 "codigo": {
                   "description": "Código de exibição, ex.: SOL-000042",
+                  "example": "SOL-000042",
                   "type": "string"
                 },
                 "dataSolicitacao": {
+                  "example": "2026-10-02T13:45:00.000Z",
                   "format": "date-time",
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                   "type": "string"
                 },
                 "id": {
+                  "example": "0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10",
                   "format": "uuid",
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
                   "type": "string"
@@ -285,9 +321,14 @@
                     "MEDIA",
                     "ALTA"
                   ],
+                  "example": "ALTA",
                   "type": "string"
                 },
                 "solicitante": {
+                  "example": {
+                    "id": "3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92",
+                    "nome": "Ana Souza"
+                  },
                   "properties": {
                     "id": {
                       "format": "uuid",
@@ -311,9 +352,11 @@
                     "APROVADA",
                     "REJEITADA"
                   ],
+                  "example": "APROVADA",
                   "type": "string"
                 },
                 "titulo": {
+                  "example": "Acesso ao sistema de cobrança",
                   "type": "string"
                 }
               },
@@ -334,6 +377,12 @@
             "type": "array"
           },
           "meta": {
+            "example": {
+              "page": 1,
+              "pageSize": 20,
+              "total": 42,
+              "totalPages": 3
+            },
             "properties": {
               "page": {
                 "maximum": 9007199254740991,
@@ -377,14 +426,22 @@
         "properties": {
           "code": {
             "description": "Código estável para o front (ex.: NAO_ENCONTRADO)",
+            "example": "TRANSICAO_INVALIDA",
             "type": "string"
           },
           "detail": {
             "description": "Ausente em erros 5xx",
+            "example": "Uma solicitação com status Aberta não pode ser aprovada. Inicie a análise primeiro.",
             "type": "string"
           },
           "errors": {
             "description": "Erros por campo (DADOS_INVALIDOS)",
+            "example": [
+              {
+                "campo": "titulo",
+                "mensagem": "O título deve ter pelo menos 5 caracteres."
+              }
+            ],
             "items": {
               "properties": {
                 "campo": {
@@ -405,21 +462,26 @@
           },
           "instance": {
             "description": "Caminho da requisição",
+            "example": "/api/v1/solicitacoes/0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10/decisao",
             "type": "string"
           },
           "requestId": {
             "description": "Mesmo valor do header X-Request-Id",
+            "example": "f3c1a2b4-6d8e-4f0a-9b1c-3e5d7f9a2b46",
             "type": "string"
           },
           "status": {
+            "example": 409,
             "maximum": 599,
             "minimum": 400,
             "type": "integer"
           },
           "title": {
+            "example": "Transição de status inválida",
             "type": "string"
           },
           "type": {
+            "example": "https://solicitacoes.local/erros/transicao-invalida",
             "format": "uri",
             "type": "string"
           }
@@ -437,6 +499,7 @@
         "additionalProperties": false,
         "properties": {
           "justificativa": {
+            "example": "A aprovação considerou o perfil errado; precisa de nova análise.",
             "maxLength": 2000,
             "minLength": 10,
             "type": "string"
@@ -450,6 +513,7 @@
       "RefreshDto": {
         "properties": {
           "refreshToken": {
+            "example": "q9fV3kz8Lw1mT0rB6yHc2pNs5uXa7dGe4jQiOtRlUvW",
             "maxLength": 512,
             "minLength": 1,
             "type": "string"
@@ -463,6 +527,11 @@
       "RespostaProntidaoDto": {
         "properties": {
           "details": {
+            "example": {
+              "database": {
+                "status": "up"
+              }
+            },
             "properties": {
               "database": {
                 "properties": {
@@ -490,6 +559,7 @@
               "ok",
               "error"
             ],
+            "example": "ok",
             "type": "string"
           }
         },
@@ -503,27 +573,45 @@
         "properties": {
           "accessExpiraEm": {
             "description": "Fim da validade do access token (UTC)",
+            "example": "2026-10-03T13:15:00.000Z",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "type": "string"
           },
           "accessToken": {
             "description": "JWT (HS256) para o header Authorization: Bearer",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIuLi4ifQ.assinatura",
             "type": "string"
           },
           "refreshExpiraEm": {
             "description": "Fim da validade do refresh token (UTC)",
+            "example": "2026-10-10T13:00:00.000Z",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "type": "string"
           },
           "refreshToken": {
             "description": "Token opaco, de uso único, para POST /auth/refresh",
+            "example": "q9fV3kz8Lw1mT0rB6yHc2pNs5uXa7dGe4jQiOtRlUvW",
             "type": "string"
           },
           "usuario": {
+            "example": {
+              "area": {
+                "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+                "nome": "Financeiro"
+              },
+              "cargo": "SOLICITANTE",
+              "email": "ana.souza@demo.test",
+              "id": "3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92",
+              "nome": "Ana Souza"
+            },
             "properties": {
               "area": {
+                "example": {
+                  "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+                  "nome": "Financeiro"
+                },
                 "properties": {
                   "id": {
                     "format": "uuid",
@@ -546,17 +634,21 @@
                   "ANALISTA",
                   "ADMIN"
                 ],
+                "example": "SOLICITANTE",
                 "type": "string"
               },
               "email": {
+                "example": "ana.souza@demo.test",
                 "type": "string"
               },
               "id": {
+                "example": "3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92",
                 "format": "uuid",
                 "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
                 "type": "string"
               },
               "nome": {
+                "example": "Ana Souza",
                 "type": "string"
               }
             },
@@ -585,6 +677,7 @@
             "enum": [
               "ok"
             ],
+            "example": "ok",
             "type": "string"
           }
         },
@@ -597,6 +690,7 @@
         "properties": {
           "aberturaMaisAntiga": {
             "description": "dataSolicitacao da ABERTA mais antiga no escopo, ou null",
+            "example": "2026-09-20T09:00:00.000Z",
             "format": "date-time",
             "nullable": true,
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
@@ -608,20 +702,28 @@
               "GERAL",
               "PROPRIAS"
             ],
+            "example": "GERAL",
             "type": "string"
           },
           "filaAlta": {
             "description": "ABERTA de prioridade ALTA no escopo",
+            "example": 3,
             "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
           },
           "geradoEm": {
+            "example": "2026-10-03T10:15:00.000Z",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "type": "string"
           },
           "porPrioridade": {
+            "example": {
+              "ALTA": 10,
+              "BAIXA": 12,
+              "MEDIA": 20
+            },
             "properties": {
               "ALTA": {
                 "maximum": 9007199254740991,
@@ -647,6 +749,12 @@
             "type": "object"
           },
           "porStatus": {
+            "example": {
+              "ABERTA": 10,
+              "APROVADA": 18,
+              "EM_ANALISE": 7,
+              "REJEITADA": 7
+            },
             "properties": {
               "ABERTA": {
                 "maximum": 9007199254740991,
@@ -678,6 +786,7 @@
             "type": "object"
           },
           "total": {
+            "example": 42,
             "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
@@ -698,13 +807,17 @@
         "properties": {
           "acoesPermitidas": {
             "description": "O que o usuário atual pode fazer agora; a UI só mostra esses botões",
+            "example": [
+              "REABRIR"
+            ],
             "items": {
               "enum": [
                 "EDITAR",
                 "EXCLUIR",
                 "INICIAR_ANALISE",
                 "DECIDIR",
-                "REABRIR"
+                "REABRIR",
+                "REPROCESSAR_INTEGRACAO"
               ],
               "type": "string"
             },
@@ -712,6 +825,10 @@
           },
           "analista": {
             "description": "Analista responsável; null até a análise começar",
+            "example": {
+              "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+              "nome": "Carla Mendes"
+            },
             "nullable": true,
             "properties": {
               "id": {
@@ -731,6 +848,10 @@
           },
           "area": {
             "description": "Área do solicitante na criação",
+            "example": {
+              "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+              "nome": "Financeiro"
+            },
             "properties": {
               "id": {
                 "format": "uuid",
@@ -748,21 +869,33 @@
             "type": "object"
           },
           "atualizadoEm": {
+            "example": "2026-10-03T10:12:00.000Z",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "type": "string"
           },
           "codigo": {
             "description": "Código de exibição, ex.: SOL-000042",
+            "example": "SOL-000042",
             "type": "string"
           },
           "dataSolicitacao": {
+            "example": "2026-10-02T13:45:00.000Z",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "type": "string"
           },
           "decisao": {
             "description": "Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura",
+            "example": {
+              "comentario": "Acesso liberado conforme a política de perfis de leitura.",
+              "decididoEm": "2026-10-03T10:12:00.000Z",
+              "decididoPor": {
+                "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+                "nome": "Carla Mendes"
+              },
+              "resultado": "APROVADA"
+            },
             "nullable": true,
             "properties": {
               "comentario": {
@@ -807,12 +940,170 @@
             "type": "object"
           },
           "descricao": {
+            "example": "Preciso de acesso de leitura ao módulo de cobrança para conciliar os boletos do mês.",
             "type": "string"
           },
           "id": {
+            "example": "0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
             "type": "string"
+          },
+          "integracao": {
+            "description": "Integração com o sistema externo (ADR-010); null se a solicitação não tem evento",
+            "example": {
+              "aguardando": 0,
+              "enviadaEm": "2026-10-03T10:12:07.000Z",
+              "eventos": [
+                {
+                  "criadoEm": "2026-10-03T10:12:00.000Z",
+                  "enviadaEm": "2026-10-03T10:12:07.000Z",
+                  "id": "5f1d7c2a-8b3e-4a69-b0d4-2e9c6a1f7d38",
+                  "status": "ENVIADO",
+                  "tentativas": 2,
+                  "tipo": "SolicitacaoAprovada"
+                }
+              ],
+              "maxTentativas": 8,
+              "proximaTentativaEm": "2026-10-03T10:12:00.000Z",
+              "status": "ENVIADO",
+              "tentativas": 2,
+              "tipo": "SolicitacaoAprovada"
+            },
+            "nullable": true,
+            "properties": {
+              "aguardando": {
+                "description": "Eventos não enviados atrás do evento em foco",
+                "example": 0,
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "enviadaEm": {
+                "description": "Quando o evento em foco foi entregue; null se ainda não foi",
+                "example": "2026-10-03T10:12:07.000Z",
+                "format": "date-time",
+                "nullable": true,
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "type": "string"
+              },
+              "eventos": {
+                "description": "Todos os eventos da solicitação, em ordem cronológica",
+                "example": [
+                  {
+                    "criadoEm": "2026-10-03T10:12:00.000Z",
+                    "enviadaEm": "2026-10-03T10:12:07.000Z",
+                    "id": "5f1d7c2a-8b3e-4a69-b0d4-2e9c6a1f7d38",
+                    "status": "ENVIADO",
+                    "tentativas": 2,
+                    "tipo": "SolicitacaoAprovada"
+                  }
+                ],
+                "items": {
+                  "properties": {
+                    "criadoEm": {
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "type": "string"
+                    },
+                    "enviadaEm": {
+                      "description": "null enquanto não for entregue",
+                      "format": "date-time",
+                      "nullable": true,
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "type": "string"
+                    },
+                    "id": {
+                      "description": "Id do evento (também a chave de idempotência do envio)",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "PENDENTE",
+                        "ENVIADO",
+                        "FALHOU"
+                      ],
+                      "type": "string"
+                    },
+                    "tentativas": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "tipo": {
+                      "enum": [
+                        "SolicitacaoAprovada",
+                        "SolicitacaoReaberta"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "tipo",
+                    "status",
+                    "tentativas",
+                    "criadoEm",
+                    "enviadaEm"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "maxTentativas": {
+                "description": "Limite de tentativas automáticas (depois, FALHOU)",
+                "example": 8,
+                "maximum": 9007199254740991,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "proximaTentativaEm": {
+                "description": "Quando o evento em foco será tentado (relevante só em PENDENTE)",
+                "example": "2026-10-03T10:12:00.000Z",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "type": "string"
+              },
+              "status": {
+                "description": "Status do evento em foco: o mais antigo ainda não enviado (segura a fila da solicitação) ou, se todos foram enviados, o mais recente",
+                "enum": [
+                  "PENDENTE",
+                  "ENVIADO",
+                  "FALHOU"
+                ],
+                "example": "ENVIADO",
+                "type": "string"
+              },
+              "tentativas": {
+                "description": "Tentativas já feitas para o evento em foco",
+                "example": 2,
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "tipo": {
+                "description": "Tipo do evento em foco",
+                "enum": [
+                  "SolicitacaoAprovada",
+                  "SolicitacaoReaberta"
+                ],
+                "example": "SolicitacaoAprovada",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "tipo",
+              "tentativas",
+              "maxTentativas",
+              "proximaTentativaEm",
+              "enviadaEm",
+              "aguardando",
+              "eventos"
+            ],
+            "type": "object"
           },
           "prioridade": {
             "enum": [
@@ -820,9 +1111,14 @@
               "MEDIA",
               "ALTA"
             ],
+            "example": "ALTA",
             "type": "string"
           },
           "solicitante": {
+            "example": {
+              "id": "3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92",
+              "nome": "Ana Souza"
+            },
             "properties": {
               "id": {
                 "format": "uuid",
@@ -846,13 +1142,16 @@
               "APROVADA",
               "REJEITADA"
             ],
+            "example": "APROVADA",
             "type": "string"
           },
           "titulo": {
+            "example": "Acesso ao sistema de cobrança",
             "type": "string"
           },
           "versao": {
             "description": "Envie no PATCH para o controle de concorrência",
+            "example": 3,
             "maximum": 9007199254740991,
             "minimum": -9007199254740991,
             "type": "integer"
@@ -872,13 +1171,18 @@
           "descricao",
           "decisao",
           "versao",
-          "acoesPermitidas"
+          "acoesPermitidas",
+          "integracao"
         ],
         "type": "object"
       },
       "UsuarioAtualDto": {
         "properties": {
           "area": {
+            "example": {
+              "id": "1a3c5e7b-9d2f-4b46-8c0e-7f9a1b3d5e28",
+              "nome": "Financeiro"
+            },
             "properties": {
               "id": {
                 "format": "uuid",
@@ -901,17 +1205,21 @@
               "ANALISTA",
               "ADMIN"
             ],
+            "example": "SOLICITANTE",
             "type": "string"
           },
           "email": {
+            "example": "ana.souza@demo.test",
             "type": "string"
           },
           "id": {
+            "example": "3e7b1c9a-2d4f-4a68-8b0e-6c1d3f5a7b92",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
             "type": "string"
           },
           "nome": {
+            "example": "Ana Souza",
             "type": "string"
           }
         },
@@ -958,24 +1266,9 @@
               }
             },
             "description": "Áreas ativas"
-          },
-          "401": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Áreas ativas, em ordem de nome",
+        "summary": "Áreas ativas, em ordem de nome (pública)",
         "tags": [
           "áreas"
         ]
@@ -1317,6 +1610,29 @@
                 "eu"
               ],
               "type": "string"
+            }
+          },
+          {
+            "description": "Id da área (UUID); pode repetir: area=<id>&area=<id>",
+            "in": "query",
+            "name": "area",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
             }
           },
           {
@@ -1897,6 +2213,83 @@
           }
         ],
         "summary": "Linha do tempo, do evento mais antigo para o mais recente",
+        "tags": [
+          "solicitações"
+        ]
+      }
+    },
+    "/api/v1/solicitacoes/{id}/integracao/reprocessamento": {
+      "post": {
+        "operationId": "reprocessarIntegracao",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SolicitacaoDto"
+                }
+              }
+            },
+            "description": "Solicitação com a integração pendente"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não é administrador (ACESSO_NEGADO)"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não existe, foi excluída ou não é visível para o usuário (SOLICITACAO_NAO_ENCONTRADA)"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A integração não está em FALHOU (TRANSICAO_INVALIDA)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Devolve à fila o evento de integração em FALHOU mais antigo (PENDENTE, tentativas zeradas); administrador",
         "tags": [
           "solicitações"
         ]

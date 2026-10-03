@@ -1,4 +1,10 @@
-import type { EventoHistorico, Prioridade, Status } from './tipos';
+import type {
+  EventoHistorico,
+  Prioridade,
+  Status,
+  StatusIntegracao,
+  TipoEventoIntegracao,
+} from './tipos';
 
 /** Rótulos da interface; a API usa os códigos. */
 export const ROTULO_STATUS: Record<Status, string> = {
@@ -44,4 +50,16 @@ export const ROTULO_CAMPO: Record<string, string> = {
   titulo: 'Título',
   descricao: 'Descrição',
   prioridade: 'Prioridade',
+};
+
+/** Tipo do evento enviado ao sistema externo. */
+export const ROTULO_TIPO_INTEGRACAO: Record<TipoEventoIntegracao, string> = {
+  SolicitacaoAprovada: 'Aprovação',
+  SolicitacaoReaberta: 'Reabertura',
+};
+
+export const ROTULO_STATUS_INTEGRACAO: Record<StatusIntegracao, string> = {
+  PENDENTE: 'Pendente',
+  ENVIADO: 'Enviada',
+  FALHOU: 'Falhou',
 };

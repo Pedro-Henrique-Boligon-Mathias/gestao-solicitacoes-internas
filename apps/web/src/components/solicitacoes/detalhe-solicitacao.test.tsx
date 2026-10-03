@@ -27,6 +27,7 @@ vi.mock('@/features/solicitacoes/actions', () => ({
   iniciarAnalise: vi.fn(),
   decidirSolicitacao: vi.fn(),
   reabrirSolicitacao: vi.fn(),
+  reprocessarIntegracao: vi.fn(),
 }));
 
 vi.mock('sonner', () => ({

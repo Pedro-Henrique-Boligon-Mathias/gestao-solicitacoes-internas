@@ -210,3 +210,18 @@ export async function reabrirSolicitacao(
     ),
   );
 }
+
+/** Devolve para a fila o evento de integração que falhou (só o Admin; a API decide). */
+export async function reprocessarIntegracao(id: string): Promise<ResultadoAcao> {
+  if (!ehIdDeSolicitacao(id)) return NAO_ENCONTRADA;
+  return comSolicitacao(
+    executar(
+      (cliente, opcoes) =>
+        cliente.POST('/api/v1/solicitacoes/{id}/integracao/reprocessamento', {
+          params: { path: { id } },
+          ...opcoes,
+        }),
+      id,
+    ),
+  );
+}
