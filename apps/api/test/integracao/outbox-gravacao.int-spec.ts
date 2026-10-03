@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import type { Client } from 'pg';
 import type { App } from 'supertest/types';
+import { capturarErroRegistrado } from '../apoio/log';
 import { criarBancoComSeed, subirApi } from './api-http';
 import {
   COMENTARIO,
@@ -255,13 +256,25 @@ describe('ADR-010: gravação dos eventos na outbox', () => {
           DEFERRABLE INITIALLY DEFERRED
           FOR EACH ROW WHEN (NEW.solicitacao_id = '${emAnalise.id}'::uuid)
           EXECUTE FUNCTION public.teste_falhar_no_commit()`);
+      // O 500 é esperado: o erro registrado pelo filtro é capturado, silenciado e conferido
+      const requestId = novoRequestId('req-commit');
+      const registro = capturarErroRegistrado(requestId);
       try {
-        const resposta = await aprovar(carla, emAnalise.id, novoRequestId('req-commit'));
+        const resposta = await aprovar(carla, emAnalise.id, requestId);
         expect(resposta.status).toBe(500);
+        expect(resposta.body).toMatchObject({ status: 500, code: 'ERRO_INTERNO', requestId });
+        expect(resposta.text).not.toContain('falha simulada no commit');
       } finally {
+        registro.restaurar();
         await owner.query('DROP TRIGGER IF EXISTS teste_falhar_no_commit ON solicitacao_historico');
         await owner.query('DROP FUNCTION IF EXISTS public.teste_falhar_no_commit()');
       }
+
+      expect(registro.capturados()).toHaveLength(1);
+      expect(registro.capturados()[0]).toEqual({
+        contexto: 'ProblemDetailsFilter',
+        dados: expect.objectContaining({ requestId, err: expect.anything() }),
+      });
 
       expect(await eventosDaSolicitacao(owner, emAnalise.id)).toEqual([]);
       expect(await detalhe(app, carla, emAnalise.id)).toMatchObject({

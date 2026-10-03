@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ignorarConsoleError } from '@/test/dom';
 import { MenuUsuario } from './menu-usuario';
 import { ProvedorTema } from './provedor-tema';
 
@@ -54,8 +55,17 @@ async function abrirMenu() {
 
 const html = () => document.documentElement;
 
+/**
+ * O menu é renderizado dentro do ProvedorTema: o next-themes injeta um <script> inline e o React
+ * avisa que scripts não rodam no render do cliente. É esperado aqui; outros erros passam.
+ */
+const AVISO_SCRIPT_NEXT_THEMES = 'Encountered a script tag while rendering React component';
+
 describe('Menu do usuário', () => {
+  let restaurarConsole: () => void;
+
   beforeAll(() => {
+    restaurarConsole = ignorarConsoleError(AVISO_SCRIPT_NEXT_THEMES);
     // APIs de layout que o jsdom não implementa e menus acessíveis costumam usar
     Element.prototype.hasPointerCapture ??= () => false;
     Element.prototype.releasePointerCapture ??= () => undefined;
@@ -65,6 +75,10 @@ describe('Menu do usuário', () => {
       unobserve() {}
       disconnect() {}
     } as unknown as typeof ResizeObserver;
+  });
+
+  afterAll(() => {
+    restaurarConsole();
   });
 
   beforeEach(() => {

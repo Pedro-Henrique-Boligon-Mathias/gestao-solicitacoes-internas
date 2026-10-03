@@ -6,6 +6,7 @@ export type Solicitacao = Schemas['SolicitacaoDto'];
 export type PaginaSolicitacoes = Schemas['PaginaSolicitacoesDto'];
 export type ItemSolicitacao = PaginaSolicitacoes['data'][number];
 export type ResumoDashboard = Schemas['ResumoDto'];
+export type Area = Schemas['AreaDto'];
 export type Status = Solicitacao['status'];
 export type Prioridade = Solicitacao['prioridade'];
 export type AcaoPermitida = Solicitacao['acoesPermitidas'][number];

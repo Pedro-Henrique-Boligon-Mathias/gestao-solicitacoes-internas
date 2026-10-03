@@ -141,6 +141,10 @@ services:
       API_URL: http://api:3001
       # http://localhost não tem HTTPS: com Secure, o Safari recusaria os cookies de sessão
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Modo demonstração no login: lista um usuário do seed por cargo e preenche o formulário.
+      # Lido só pelo servidor do web; fora do compose, o padrão é desligado
+      DEMO_MODE: ${DEMO_MODE:-true}
+      SEED_PASSWORD: ${SEED_PASSWORD:-Demo@2026}
     ports:
       - '3000:3000'
     depends_on:

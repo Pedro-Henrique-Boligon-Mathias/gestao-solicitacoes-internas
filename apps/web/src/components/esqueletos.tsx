@@ -1,38 +1,77 @@
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Esqueletos de carregamento no formato de cada tela (loading.tsx). */
-export function EsqueletoDashboard() {
+/**
+ * Esqueletos de carregamento no formato de cada tela (loading.tsx) ou de cada bloco do
+ * dashboard (fallback do <Suspense>).
+ */
+
+/** Linha 1 do dashboard: card de destaque e os 4 blocos de status. */
+export function EsqueletoResumo() {
   return (
-    <div role="status" aria-label="Carregando o dashboard" className="flex flex-col gap-4">
-      <div className="flex justify-end">
-        <Skeleton className="rounded-pill h-10 w-44" />
-      </div>
-      <div className="flex flex-wrap gap-4 max-[760px]:gap-3">
-        <Skeleton className="rounded-card h-[300px] min-w-0 flex-[5_1_340px]" />
-        <div className="grid min-w-0 flex-[7_1_420px] grid-cols-2 gap-4 max-[760px]:gap-3">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="bg-tile rounded-card flex flex-col gap-4 p-5">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-10 w-16" />
-              <Skeleton className="h-1 w-full" />
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-4 max-[760px]:gap-3">
-        <div className="bg-card rounded-card flex min-w-0 flex-[7_1_480px] flex-col gap-3 p-5">
-          <Skeleton className="h-5 w-48" />
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="rounded-row h-11 w-full" />
-          ))}
-        </div>
-        <div className="bg-card rounded-card flex min-w-0 flex-[5_1_320px] flex-col gap-3 p-5">
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="rounded-inner h-56 w-full" />
-        </div>
+    <div
+      role="status"
+      aria-label="Carregando o resumo"
+      className="flex flex-wrap gap-4 max-[760px]:gap-3"
+    >
+      <Skeleton className="rounded-card h-[300px] min-w-0 flex-[5_1_340px]" />
+      <div className="grid min-w-0 flex-[7_1_420px] grid-cols-2 gap-4 max-[760px]:gap-3">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="bg-tile rounded-card flex flex-col gap-4 p-5">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-10 w-16" />
+            <Skeleton className="h-1 w-full" />
+          </div>
+        ))}
       </div>
     </div>
   );
+}
+
+/** Gráfico por prioridade (parte do resumo; o anúncio de carregamento é o do resumo). */
+export function EsqueletoGrafico() {
+  return (
+    <div className="bg-card rounded-card flex min-w-0 flex-[5_1_320px] flex-col gap-3 p-5">
+      <Skeleton className="h-5 w-32" />
+      <Skeleton className="h-4 w-44" />
+      <Skeleton className="rounded-inner h-56 w-full" />
+    </div>
+  );
+}
+
+/** Listas do dashboard: um card por lista do cargo (2 para quem analisa, 1 para o solicitante). */
+export function EsqueletoListas({ quantidade = 1 }: { quantidade?: number }) {
+  return (
+    <div
+      role="status"
+      aria-label="Carregando as listas"
+      className="flex flex-col gap-4 max-[760px]:gap-3"
+    >
+      {Array.from({ length: quantidade }, (_, lista) => (
+        <div key={lista} className="bg-card rounded-card flex flex-col gap-3 p-5">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-36" />
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="rounded-row h-11 w-full" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Data "Dados de …" do cabeçalho do dashboard, enquanto o resumo não chega. */
+export function EsqueletoDataResumo() {
+  return <Skeleton className="h-4 w-40" />;
+}
+
+/** Botão do card de destaque que depende de um item da lista ("Iniciar a próxima"). */
+export function EsqueletoBotaoDestaque() {
+  return <Skeleton className="rounded-pill h-10 w-40 bg-white/15" />;
+}
+
+/** Frase do card de destaque que depende de um item da lista ("A mais recente é …"). */
+export function EsqueletoFraseDestaque() {
+  return <Skeleton className="h-4 w-64 max-w-full bg-white/15" />;
 }
 
 export function EsqueletoLista() {

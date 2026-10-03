@@ -2,7 +2,7 @@
  * Utilitários de teste para componentes com Radix (modais, menus) no jsdom.
  * Só para testes: nada aqui é importado pelo código de produção.
  */
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 
 /** APIs de layout que o jsdom não implementa e que modais, menus e gráficos usam. */
 export function prepararDom(): void {
@@ -15,6 +15,35 @@ export function prepararDom(): void {
     unobserve() {}
     disconnect() {}
   } as unknown as typeof ResizeObserver;
+}
+
+/**
+ * O jsdom não tem layout: todo elemento mede 0×0 e o ResponsiveContainer do Recharts avisa
+ * "width(0) and height(0)". Dá ao container do gráfico o tamanho que ele teria na tela.
+ * Os outros elementos continuam com a medida do jsdom. Devolve a função que desfaz.
+ */
+export function darTamanhoAosGraficos(largura = 360, altura = 220): () => void {
+  const original = HTMLElement.prototype.getBoundingClientRect;
+  const espiao = vi
+    .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+    .mockImplementation(function (this: HTMLElement) {
+      if (!this.classList.contains('recharts-responsive-container')) return original.call(this);
+      return DOMRect.fromRect({ x: 0, y: 0, width: largura, height: altura });
+    });
+  return () => espiao.mockRestore();
+}
+
+/**
+ * Silencia só o console.error cuja mensagem contém o trecho informado (um aviso conhecido de
+ * biblioteca). Qualquer outra mensagem continua saindo normalmente. Devolve a função que desfaz.
+ */
+export function ignorarConsoleError(trecho: string): () => void {
+  const original = console.error.bind(console);
+  const espiao = vi.spyOn(console, 'error').mockImplementation((...argumentos: unknown[]) => {
+    if (argumentos.some((a) => typeof a === 'string' && a.includes(trecho))) return;
+    original(...argumentos);
+  });
+  return () => espiao.mockRestore();
 }
 
 /** Caminho e parâmetros de um href ou de um destino de navegação (relativo ou com "?"). */

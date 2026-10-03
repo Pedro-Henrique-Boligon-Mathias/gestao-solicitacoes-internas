@@ -1,9 +1,9 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { lerFiltros } from '@/features/solicitacoes/filtros';
 import { lerUrl, paramsComoObjeto, prepararDom } from '@/test/dom';
-import { resumo } from '@/test/fabricas';
+import { AREAS, resumo, type Area } from '@/test/fabricas';
 import { BarraFiltros } from './barra-filtros';
 
 const roteador = vi.hoisted(() => ({
@@ -22,12 +22,19 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(busca.atual),
 }));
 
-/** Renderiza a barra com os filtros lidos da query (a mesma que o useSearchParams devolve). */
-function renderizar(query = '') {
+/**
+ * Renderiza a barra com os filtros lidos da query (a mesma que o useSearchParams devolve).
+ * `areas` é a lista de GET /areas; a página só passa quando quem vê pode filtrar por área.
+ */
+function renderizar(query = '', areas?: Area[]) {
   busca.atual = query;
   const filtros = lerFiltros(new URLSearchParams(query));
-  return render(<BarraFiltros filtros={filtros} resumo={resumo()} />);
+  return render(<BarraFiltros filtros={filtros} resumo={resumo()} areas={areas} />);
 }
+
+const FINANCEIRO = AREAS.find((a) => a.nome === 'Financeiro')!;
+const TECNOLOGIA = AREAS.find((a) => a.nome === 'Tecnologia')!;
+const grupoArea = () => screen.queryByRole('group', { name: 'Área' });
 
 /** Parâmetros da última navegação feita com router.replace. */
 function ultimaUrl(): Record<string, string | string[]> {
@@ -135,5 +142,78 @@ describe('RF-02: barra de filtros da lista', () => {
     await pessoa.selectOptions(screen.getByLabelText(/ordenar/i), opcao);
 
     expect(ultimaUrl()).toEqual(esperado);
+  });
+
+  describe('RF-02: filtro por área', () => {
+    it('RF-02: mostra a linha "Área" com um chip por área, sem total', () => {
+      renderizar('', AREAS);
+
+      const grupo = grupoArea();
+      expect(grupo).toBeInTheDocument();
+      for (const area of AREAS) {
+        const chip = within(grupo!).getByRole('button', { name: area.nome });
+        expect(chip).toHaveAttribute('aria-pressed', 'false');
+        expect(chip).toHaveTextContent(new RegExp(`^${area.nome}$`));
+      }
+      expect(within(grupo!).getAllByRole('button')).toHaveLength(AREAS.length);
+    });
+
+    it('RF-02: chip de área marca a área em ?area= e volta para a página 1', async () => {
+      const pessoa = userEvent.setup();
+      renderizar('status=ABERTA&page=3', AREAS);
+
+      await pessoa.click(within(grupoArea()!).getByRole('button', { name: 'Financeiro' }));
+
+      expect(ultimaUrl()).toEqual({ status: 'ABERTA', area: FINANCEIRO.id });
+    });
+
+    it('RF-02: marcar uma segunda área repete ?area= na URL', async () => {
+      const pessoa = userEvent.setup();
+      renderizar(`area=${FINANCEIRO.id}&page=2`, AREAS);
+
+      const chipFinanceiro = within(grupoArea()!).getByRole('button', { name: 'Financeiro' });
+      expect(chipFinanceiro).toHaveAttribute('aria-pressed', 'true');
+      await pessoa.click(within(grupoArea()!).getByRole('button', { name: 'Tecnologia' }));
+
+      expect(ultimaUrl()).toEqual({ area: [FINANCEIRO.id, TECNOLOGIA.id] });
+    });
+
+    it('RF-02: desmarcar uma área ativa tira só ela da URL', async () => {
+      const pessoa = userEvent.setup();
+      renderizar(`area=${FINANCEIRO.id}&area=${TECNOLOGIA.id}&page=2`, AREAS);
+
+      await pessoa.click(within(grupoArea()!).getByRole('button', { name: 'Financeiro' }));
+
+      expect(ultimaUrl()).toEqual({ area: TECNOLOGIA.id });
+    });
+
+    it('RF-02: "Limpar filtros" aparece só com a área e remove ?area=', async () => {
+      const pessoa = userEvent.setup();
+      renderizar(`area=${FINANCEIRO.id}`, AREAS);
+
+      await pessoa.click(screen.getByRole('button', { name: 'Limpar filtros' }));
+
+      expect(ultimaUrl()).toEqual({});
+    });
+
+    it('RF-02: "Limpar filtros" remove a área junto com os outros filtros', async () => {
+      const pessoa = userEvent.setup();
+      renderizar(`q=folha&status=ABERTA&area=${FINANCEIRO.id}&area=${TECNOLOGIA.id}&page=2`, AREAS);
+
+      await pessoa.click(screen.getByRole('button', { name: 'Limpar filtros' }));
+
+      expect(ultimaUrl()).toEqual({});
+    });
+
+    it.each([
+      ['sem a lista de áreas', undefined],
+      ['com a lista vazia', []],
+    ])('RF-02: %s, a barra renderiza sem a linha de área', (_nome, areas) => {
+      renderizar('', areas);
+
+      expect(grupoArea()).toBeNull();
+      expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: 'Prioridade' })).toBeInTheDocument();
+    });
   });
 });

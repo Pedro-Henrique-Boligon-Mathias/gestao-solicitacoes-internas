@@ -13,6 +13,7 @@ export type Pagina = Schemas['PaginaSolicitacoesDto'];
 export type ItemLista = Pagina['data'][number];
 export type Resumo = Schemas['ResumoDto'];
 export type Evento = Schemas['EventoHistoricoDto'];
+export type Area = Schemas['AreaDto'];
 export type Status = Solicitacao['status'];
 export type Prioridade = Solicitacao['prioridade'];
 export type Acao = Solicitacao['acoesPermitidas'][number] | 'REPROCESSAR_INTEGRACAO';
@@ -73,6 +74,14 @@ export const DIEGO: Usuario = {
   cargo: 'ADMIN',
   area: { id: 'a0000000-0000-4000-8000-000000000002', nome: 'Tecnologia' },
 };
+
+/** Áreas devolvidas por GET /areas, em ordem de nome (Financeiro é a da Ana; Tecnologia, a da Carla). */
+export const AREAS: Area[] = [
+  { id: 'a0000000-0000-4000-8000-000000000003', nome: 'Comercial' },
+  { id: 'a0000000-0000-4000-8000-000000000001', nome: 'Financeiro' },
+  { id: 'a0000000-0000-4000-8000-000000000004', nome: 'Recursos Humanos' },
+  { id: 'a0000000-0000-4000-8000-000000000002', nome: 'Tecnologia' },
+];
 
 export const pessoa = (usuario: Usuario) => ({ id: usuario.id, nome: usuario.nome });
 

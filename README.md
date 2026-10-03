@@ -41,28 +41,31 @@ Para parar e apagar os dados: `docker compose down --volumes`.
 
 Todas têm padrão local no `compose.yaml`; o `.env.example` traz os mesmos valores para o desenvolvimento fora do Docker.
 
-| Variável                                                          | Padrão local                                          | Uso                                                                                                  |
-| ----------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `POSTGRES_PASSWORD`, `APP_OWNER_PASSWORD`, `APP_RUNTIME_PASSWORD` | `postgres-local`, `owner-local`, `runtime-local`      | Senhas do superusuário e dos papéis do banco                                                         |
-| `APP_WORKER_PASSWORD`                                             | `worker-local`                                        | Senha do papel `app_worker`, usado pelo worker de integração                                         |
-| `DB_PORT`                                                         | `5432`                                                | Porta do Postgres no host                                                                            |
-| `SEED_PASSWORD`                                                   | `Demo@2026`                                           | Senha dos usuários de demonstração                                                                   |
-| `JWT_SECRET`                                                      | `segredo-local-de-desenvolvimento-troque-em-producao` | Assinatura dos access tokens (HS256). Obrigatória, com 32+ caracteres; troque fora do ambiente local |
-| `ACCESS_TOKEN_TTL`                                                | `15m`                                                 | Validade do access token                                                                             |
-| `REFRESH_TOKEN_DIAS`                                              | `7`                                                   | Validade de cada refresh token                                                                       |
-| `REFRESH_GRACA_SEGUNDOS`                                          | `10`                                                  | Janela em que um refresh recém-trocado ainda é aceito (duas abas renovando juntas)                   |
-| `COOKIE_SECURE`                                                   | `false`                                               | Marca os cookies de sessão como `Secure`. Use `true` só atrás de HTTPS                               |
-| `LOG_LEVEL`                                                       | `info`                                                | Nível dos logs da API e do worker                                                                    |
-| `OUTBOX_INTERVALO_MS`                                             | `2000`                                                | Intervalo entre os ciclos do worker                                                                  |
-| `OUTBOX_LOTE`                                                     | `10`                                                  | Eventos enviados por ciclo                                                                           |
-| `OUTBOX_TIMEOUT_MS`                                               | `5000`                                                | Tempo máximo de cada envio ao sistema externo                                                        |
-| `OUTBOX_BACKOFF_BASE_MS`, `OUTBOX_BACKOFF_MAX_MS`                 | `2000`, `60000`                                       | Backoff: base × 2^(tentativas − 1), até o teto, com jitter de ±20%. Em produção: 30 s e 2 h          |
-| `OUTBOX_MAX_TENTATIVAS`                                           | `8`                                                   | Tentativas automáticas antes de `FALHOU`; a API mostra "tentativa N de M" com o mesmo valor          |
-| `MOCK_FAILURE_RATE`                                               | `0.5`                                                 | Probabilidade (0 a 1) de o simulador responder 503                                                   |
+| Variável                                                          | Padrão local                                          | Uso                                                                                                    |
+| ----------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `POSTGRES_PASSWORD`, `APP_OWNER_PASSWORD`, `APP_RUNTIME_PASSWORD` | `postgres-local`, `owner-local`, `runtime-local`      | Senhas do superusuário e dos papéis do banco                                                           |
+| `APP_WORKER_PASSWORD`                                             | `worker-local`                                        | Senha do papel `app_worker`, usado pelo worker de integração                                           |
+| `DB_PORT`                                                         | `5432`                                                | Porta do Postgres no host                                                                              |
+| `SEED_PASSWORD`                                                   | `Demo@2026`                                           | Senha dos usuários de demonstração (o seed cria com ela; o modo demonstração do login a preenche)      |
+| `DEMO_MODE`                                                       | `true`                                                | Modo demonstração no login. Só `true` liga; qualquer outro valor (ou ausente, fora do compose) desliga |
+| `JWT_SECRET`                                                      | `segredo-local-de-desenvolvimento-troque-em-producao` | Assinatura dos access tokens (HS256). Obrigatória, com 32+ caracteres; troque fora do ambiente local   |
+| `ACCESS_TOKEN_TTL`                                                | `15m`                                                 | Validade do access token                                                                               |
+| `REFRESH_TOKEN_DIAS`                                              | `7`                                                   | Validade de cada refresh token                                                                         |
+| `REFRESH_GRACA_SEGUNDOS`                                          | `10`                                                  | Janela em que um refresh recém-trocado ainda é aceito (duas abas renovando juntas)                     |
+| `COOKIE_SECURE`                                                   | `false`                                               | Marca os cookies de sessão como `Secure`. Use `true` só atrás de HTTPS                                 |
+| `LOG_LEVEL`                                                       | `info`                                                | Nível dos logs da API e do worker                                                                      |
+| `OUTBOX_INTERVALO_MS`                                             | `2000`                                                | Intervalo entre os ciclos do worker                                                                    |
+| `OUTBOX_LOTE`                                                     | `10`                                                  | Eventos enviados por ciclo                                                                             |
+| `OUTBOX_TIMEOUT_MS`                                               | `5000`                                                | Tempo máximo de cada envio ao sistema externo                                                          |
+| `OUTBOX_BACKOFF_BASE_MS`, `OUTBOX_BACKOFF_MAX_MS`                 | `2000`, `60000`                                       | Backoff: base × 2^(tentativas − 1), até o teto, com jitter de ±20%. Em produção: 30 s e 2 h            |
+| `OUTBOX_MAX_TENTATIVAS`                                           | `8`                                                   | Tentativas automáticas antes de `FALHOU`; a API mostra "tentativa N de M" com o mesmo valor            |
+| `MOCK_FAILURE_RATE`                                               | `0.5`                                                 | Probabilidade (0 a 1) de o simulador responder 503                                                     |
 
 ### Usuários de demonstração
 
 Criados pelo seed. A senha de todos é o valor de `SEED_PASSWORD` (padrão `Demo@2026`). Entre em http://localhost:3000/login com qualquer um deles, por exemplo `carla.mendes@demo.test` / `Demo@2026`.
+
+Com `DEMO_MODE=true` (padrão no compose), o login mostra o card "Modo demonstração" com um usuário por cargo: Ana Souza (Solicitante), Carla Mendes (Analista) e Diego Alves (Administrador). O botão "Usar" preenche o e-mail e a senha e põe o foco em "Entrar"; o envio segue o login normal. Desligado, o card e a senha não vão para a página.
 
 | Nome         | E-mail                 | Cargo         | Área             |
 | ------------ | ---------------------- | ------------- | ---------------- |

@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: 'Página não encontrada' };
 export default function NaoEncontrada() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-xl flex-col justify-center p-4">
-      <PaginaNaoEncontrada />
+      <PaginaNaoEncontrada mensagem="O endereço que você abriu não existe. Confira o link ou volte ao dashboard." />
     </main>
   );
 }
