@@ -24,6 +24,11 @@ export async function criarBancoMigrado(nome: string): Promise<void> {
   try {
     await superusuario.query(`CREATE DATABASE "${nome}" OWNER app_owner`);
     await superusuario.query(`GRANT CONNECT ON DATABASE "${nome}" TO app_runtime`);
+    // O papel do worker vem do mesmo script de init; enquanto ele não existir, não há o que liberar.
+    const worker = await superusuario.query("SELECT 1 FROM pg_roles WHERE rolname = 'app_worker'");
+    if (worker.rowCount === 1) {
+      await superusuario.query(`GRANT CONNECT ON DATABASE "${nome}" TO app_worker`);
+    }
   } finally {
     await superusuario.end();
   }

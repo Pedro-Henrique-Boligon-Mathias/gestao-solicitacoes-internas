@@ -12,6 +12,7 @@ export const BANCO_PRINCIPAL = 'solicitacoes';
 export const SENHA_SUPERUSUARIO = 'teste-super';
 export const SENHA_OWNER = 'teste-owner';
 export const SENHA_RUNTIME = 'teste-runtime';
+export const SENHA_WORKER = 'teste-worker';
 
 /** Variáveis que o setup global publica para os arquivos de teste. */
 export const VARIAVEIS = {
@@ -19,12 +20,13 @@ export const VARIAVEIS = {
   porta: 'TESTE_PG_PORTA',
 } as const;
 
-export type Papel = 'superusuario' | 'owner' | 'runtime';
+export type Papel = 'superusuario' | 'owner' | 'runtime' | 'worker';
 
 const CREDENCIAIS: Record<Papel, { usuario: string; senha: string }> = {
   superusuario: { usuario: 'postgres', senha: SENHA_SUPERUSUARIO },
   owner: { usuario: 'app_owner', senha: SENHA_OWNER },
   runtime: { usuario: 'app_runtime', senha: SENHA_RUNTIME },
+  worker: { usuario: 'app_worker', senha: SENHA_WORKER },
 };
 
 /** URL de conexão do container de testes para o papel e o banco informados. */

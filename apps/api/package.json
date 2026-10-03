@@ -89,10 +89,15 @@
     },
     "collectCoverageFrom": [
       "src/modules/solicitacoes/domain/**/*.ts",
+      "src/modules/integracoes/domain/**/*.ts",
       "!**/*.spec.ts"
     ],
     "coverageThreshold": {
       "./src/modules/solicitacoes/domain/": {
+        "lines": 90,
+        "branches": 90
+      },
+      "./src/modules/integracoes/domain/": {
         "lines": 90,
         "branches": 90
       }
