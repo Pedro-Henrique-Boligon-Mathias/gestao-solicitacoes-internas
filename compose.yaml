@@ -1,0 +1,91 @@
+# Ambiente completo: docker compose up --build
+# Os valores padrão servem só para uso local; sobrescreva pelo .env (ver .env.example).
+name: gestao-solicitacoes
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: solicitacoes
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres-local}
+      APP_OWNER_PASSWORD: ${APP_OWNER_PASSWORD:-owner-local}
+      APP_RUNTIME_PASSWORD: ${APP_RUNTIME_PASSWORD:-runtime-local}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./infra/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d solicitacoes']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Aplica as migrations e o seed, depois encerra
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrate
+    environment:
+      MIGRATION_DATABASE_URL: postgresql://app_owner:${APP_OWNER_PASSWORD:-owner-local}@db:5432/solicitacoes
+      SEED_PASSWORD: ${SEED_PASSWORD:-Demo@2026}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://app_runtime:${APP_RUNTIME_PASSWORD:-runtime-local}@db:5432/solicitacoes
+      WEB_ORIGIN: http://localhost:3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - '3001:3001'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/health/ready').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    init: true
+    environment:
+      # Chamada interna feita pelo servidor do Next; o navegador nunca acessa a API diretamente
+      API_URL: http://api:3001
+    ports:
+      - '3000:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+volumes:
+  db-data:

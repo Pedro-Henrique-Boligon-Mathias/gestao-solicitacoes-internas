@@ -1,0 +1,11 @@
+pnpm-lock.yaml
+apps/api/src/generated/
+apps/api/prisma/migrations/
+**/dist/
+**/.next/
+**/coverage/
+**/.turbo/
+# Gerado por pnpm --filter api openapi:generate
+apps/api/openapi.json
+# Gerado por pnpm --filter web contract:generate
+apps/web/src/lib/api/schema.d.ts

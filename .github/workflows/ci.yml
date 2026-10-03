@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  qualidade:
+    name: Formatação, lint, tipos, testes, build e contrato
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm turbo run lint typecheck test build
+      # Regenera o openapi.json e os tipos do web; falha se o que foi commitado estiver desatualizado
+      - run: pnpm contract:check
+
+  integracao:
+    name: Integração com Postgres real
+    needs: qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter api generate
+      # O Testcontainers usa o Docker do próprio runner
+      - run: pnpm test:integration
+
+  docker:
+    name: Ambiente Docker sobe do zero
+    needs: qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Subir db, migrations, api e web
+        run: docker compose up --build --detach --wait --wait-timeout 600
+      - name: API pronta e com banco
+        run: curl --fail --silent --show-error http://localhost:3001/health/ready
+      - name: Web renderiza com a API operando
+        run: |
+          pagina=$(curl --fail --silent --show-error http://localhost:3000/)
+          echo "$pagina" | grep -q 'Gestão de Solicitações Internas'
+          if echo "$pagina" | grep -q 'Indisponível'; then
+            echo "A página indica componente indisponível"; exit 1
+          fi
+      - name: Logs dos containers
+        if: failure()
+        run: docker compose logs
+      - name: Derrubar o ambiente
+        if: always()
+        run: docker compose down --volumes
+
+  segredos:
+    name: Varredura de segredos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
