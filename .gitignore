@@ -1,0 +1,32 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Código gerado
+apps/api/src/generated/
+
+# Testes
+coverage/
+playwright-report/
+test-results/
+
+# Turborepo
+.turbo/
+
+# Ambiente: nunca versionar segredos
+.env
+.env.*
+!.env.example
+
+# Sistema e editores
+.DS_Store
+*.log
+.idea/
+.vscode/*
+!.vscode/extensions.json
