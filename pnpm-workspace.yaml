@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Dependências autorizadas a executar scripts de instalação
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - esbuild
+  - prisma
+  - sharp
+  - unrs-resolver
+
+# Scripts recusados de propósito: telemetria do swagger-ui e build nativo opcional do watch do Jest
+ignoredBuiltDependencies:
+  - '@parcel/watcher'
+  - '@scarf/scarf'

@@ -1,0 +1,133 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Regras que o Prisma não representa (CHECKs e permissões dos papéis)
+// ficam em SQL dentro das migrations.
+
+enum Cargo {
+  SOLICITANTE
+  ANALISTA
+  ADMIN
+
+  @@map("cargo")
+}
+
+enum Prioridade {
+  BAIXA
+  MEDIA
+  ALTA
+
+  @@map("prioridade")
+}
+
+enum StatusSolicitacao {
+  ABERTA
+  EM_ANALISE
+  APROVADA
+  REJEITADA
+
+  @@map("status_solicitacao")
+}
+
+enum TipoEvento {
+  CRIADA
+  EDITADA
+  ANALISE_INICIADA
+  APROVADA
+  REJEITADA
+  EXCLUIDA
+
+  @@map("tipo_evento")
+}
+
+model Area {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome     String   @unique @db.VarChar(80)
+  ativo    Boolean  @default(true)
+  criadoEm DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  usuarios     Usuario[]
+  solicitacoes Solicitacao[]
+
+  @@map("areas")
+}
+
+model Usuario {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome         String   @db.VarChar(120)
+  email        String   @unique @db.VarChar(254)
+  senhaHash    String   @map("senha_hash")
+  cargo        Cargo
+  areaId       String   @map("area_id") @db.Uuid
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm DateTime @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  area         Area                   @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  solicitacoes Solicitacao[]          @relation("Solicitante")
+  analises     Solicitacao[]          @relation("Analista")
+  decisoes     Solicitacao[]          @relation("DecididoPor")
+  eventos      SolicitacaoHistorico[]
+
+  @@index([areaId])
+  @@map("usuarios")
+}
+
+model Solicitacao {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo            Int               @unique @default(autoincrement())
+  titulo            String            @db.VarChar(120)
+  descricao         String
+  prioridade        Prioridade
+  status            StatusSolicitacao @default(ABERTA)
+  solicitanteId     String            @map("solicitante_id") @db.Uuid
+  areaId            String            @map("area_id") @db.Uuid
+  analistaId        String?           @map("analista_id") @db.Uuid
+  dataSolicitacao   DateTime          @default(now()) @map("data_solicitacao") @db.Timestamptz(3)
+  decisaoComentario String?           @map("decisao_comentario")
+  decididoEm        DateTime?         @map("decidido_em") @db.Timestamptz(3)
+  decididoPorId     String?           @map("decidido_por_id") @db.Uuid
+  versao            Int               @default(1)
+  atualizadoEm      DateTime          @default(now()) @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+  excluidoEm        DateTime?         @map("excluido_em") @db.Timestamptz(3)
+
+  solicitante Usuario                @relation("Solicitante", fields: [solicitanteId], references: [id], onDelete: Restrict)
+  area        Area                   @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  analista    Usuario?               @relation("Analista", fields: [analistaId], references: [id], onDelete: Restrict)
+  decididoPor Usuario?               @relation("DecididoPor", fields: [decididoPorId], references: [id], onDelete: Restrict)
+  historico   SolicitacaoHistorico[]
+
+  @@index([dataSolicitacao(sort: Desc)])
+  @@index([solicitanteId, dataSolicitacao(sort: Desc)])
+  @@index([status, dataSolicitacao])
+  @@index([areaId])
+  @@index([analistaId])
+  @@index([decididoPorId])
+  @@map("solicitacoes")
+}
+
+model SolicitacaoHistorico {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitacaoId  String             @map("solicitacao_id") @db.Uuid
+  tipo           TipoEvento
+  statusAnterior StatusSolicitacao? @map("status_anterior")
+  statusNovo     StatusSolicitacao? @map("status_novo")
+  comentario     String?
+  autorId        String             @map("autor_id") @db.Uuid
+  dados          Json?
+  criadoEm       DateTime           @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id], onDelete: Restrict)
+  autor       Usuario     @relation(fields: [autorId], references: [id], onDelete: Restrict)
+
+  @@index([solicitacaoId, criadoEm])
+  @@index([autorId])
+  @@map("solicitacao_historico")
+}
