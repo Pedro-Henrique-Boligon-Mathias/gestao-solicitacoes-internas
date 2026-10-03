@@ -5,6 +5,5 @@ const eslintNoPacote = (pasta) => (arquivos) =>
 export default {
   'apps/api/**/*.{ts,js,mjs}': [eslintNoPacote('apps/api'), 'prettier --write'],
   'apps/web/**/*.{ts,tsx,js,mjs}': [eslintNoPacote('apps/web'), 'prettier --write'],
-  'packages/contracts/**/*.{ts,mjs}': [eslintNoPacote('packages/contracts'), 'prettier --write'],
   '*.{json,md,yml,yaml,css}': 'prettier --write',
 };

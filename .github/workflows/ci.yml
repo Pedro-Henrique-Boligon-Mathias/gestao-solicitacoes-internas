@@ -17,7 +17,7 @@ env:
 
 jobs:
   qualidade:
-    name: Formatação, lint, tipos, testes e build
+    name: Formatação, lint, tipos, testes, build e contrato
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -30,6 +30,25 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm turbo run lint typecheck test build
+      # Regenera o openapi.json e os tipos do web; falha se o que foi commitado estiver desatualizado
+      - run: pnpm contract:check
+
+  integracao:
+    name: Integração com Postgres real
+    needs: qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter api generate
+      # O Testcontainers usa o Docker do próprio runner
+      - run: pnpm test:integration
 
   docker:
     name: Ambiente Docker sobe do zero
