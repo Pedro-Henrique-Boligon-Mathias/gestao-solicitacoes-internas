@@ -13,7 +13,7 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "test": "jest",
+    "test": "jest --coverage",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.integration.config.mjs",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
@@ -91,6 +91,12 @@
       "src/**/*.ts",
       "!src/generated/**",
       "!src/main.ts"
-    ]
+    ],
+    "coverageThreshold": {
+      "./src/modules/solicitacoes/domain/": {
+        "lines": 90,
+        "branches": 90
+      }
+    }
   }
 }
