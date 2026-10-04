@@ -473,6 +473,16 @@ describe('RF-04/RN-07: dashboard do analista', () => {
     expect(screen.queryByRole('heading', { name: 'Visão geral' })).toBeNull();
   });
 
+  it('ADR-013: o cabeçalho do dashboard junta a saudação, a data dos dados, o período e "Nova solicitação"', async () => {
+    await renderizar(CARLA);
+
+    const cabecalho = screen.getByRole('banner');
+    expect(cabecalho).toHaveTextContent(/(Bom dia|Boa tarde|Boa noite), Carla/);
+    expect(cabecalho).toHaveTextContent(/Dados de/);
+    expect(within(cabecalho).getByRole('button', { name: /^Período/ })).toBeInTheDocument();
+    expect(within(cabecalho).getByRole('button', { name: 'Nova solicitação' })).toBeInTheDocument();
+  });
+
   it('RF-04: "Minhas análises N" usa o meta.total (analista=eu, EM_ANALISE, por prioridade, 5)', async () => {
     await renderizar(CARLA);
 

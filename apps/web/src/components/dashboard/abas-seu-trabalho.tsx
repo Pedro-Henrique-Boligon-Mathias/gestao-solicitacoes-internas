@@ -13,7 +13,7 @@ const classeAba =
  * os dois painéis (forceMount) ficam lado a lado, 7fr/5fr como no redesenho.
  */
 const classePainel =
-  'flex min-w-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-[state=inactive]:hidden min-[761px]:data-[state=inactive]:flex [&>*]:flex-1';
+  'flex min-w-0 tela:min-h-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-[state=inactive]:hidden min-[761px]:data-[state=inactive]:flex [&>*]:flex-1';
 
 /**
  * "Seu trabalho" do analista: abas Radix "Minhas análises N | Fila N" no celular. Os totais são os
@@ -32,7 +32,7 @@ export function AbasSeuTrabalho({
 }) {
   const inicial: Aba = totalMinhasAnalises > 0 ? 'minhas' : 'fila';
   return (
-    <Tabs.Root defaultValue={inicial} className="flex flex-col gap-3">
+    <Tabs.Root defaultValue={inicial} className="flex flex-col gap-3 tela:min-h-0 tela:flex-1">
       <Tabs.List
         aria-label="Seu trabalho"
         className="flex gap-1 rounded-pill bg-card p-1 shadow-[inset_0_0_0_1px_var(--border)] min-[761px]:hidden"
@@ -44,7 +44,7 @@ export function AbasSeuTrabalho({
           Fila <span className="font-mono text-xs">{totalFila}</span>
         </Tabs.Trigger>
       </Tabs.List>
-      <div className="flex flex-col gap-4 min-[761px]:grid min-[761px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+      <div className="flex flex-col gap-4 min-[761px]:grid min-[761px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] tela:min-h-0 tela:flex-1">
         <Tabs.Content value="minhas" forceMount className={classePainel}>
           {minhasAnalises}
         </Tabs.Content>

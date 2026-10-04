@@ -30,12 +30,12 @@ export function GraficoPrioridade({ resumo }: { resumo: ResumoDashboard }) {
   const destino = (p: Prioridade) => `/solicitacoes?prioridade=${p}`;
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 tela:min-h-0 tela:flex-1">
       <p className="sr-only">
         Distribuição por prioridade:{' '}
         {dados.map((d) => `${ROTULO_PRIORIDADE[d.prioridade]} ${d.valor}`).join(', ')}.
       </p>
-      <div aria-hidden="true" className="h-[220px] w-full">
+      <div aria-hidden="true" className="h-[220px] w-full tela:h-auto tela:min-h-0 tela:flex-1">
         <ResponsiveContainer
           width="100%"
           height="100%"

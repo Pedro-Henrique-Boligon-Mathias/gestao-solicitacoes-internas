@@ -14,12 +14,12 @@ vi.mock('next/navigation', () => ({ usePathname: () => rota.atual }));
 const ESCONDE_NO_CELULAR = 'max-[760px]:hidden';
 
 describe('ADR-013: cabeçalho da área logada', () => {
-  it('ADR-013: no dashboard, a saudação aparece também no celular', () => {
+  it('ADR-013: no dashboard, o cabeçalho do layout não aparece (o dashboard mostra a saudação com a data)', () => {
     rota.atual = '/dashboard';
     render(<CabecalhoAreaLogada>Bom dia, Carla</CabecalhoAreaLogada>);
 
-    expect(screen.getByRole('banner')).toHaveTextContent('Bom dia, Carla');
-    expect(screen.getByRole('banner')).not.toHaveClass(ESCONDE_NO_CELULAR);
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bom dia, Carla')).not.toBeInTheDocument();
   });
 
   it.each(['/solicitacoes', '/solicitacoes/c0000000-0000-4000-8000-000000000042'])(

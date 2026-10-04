@@ -5,20 +5,7 @@ import { BarraNavegacao } from '@/components/barra-navegacao';
 import { CabecalhoAreaLogada } from '@/components/cabecalho-area-logada';
 import { obterResumo } from '@/features/solicitacoes/consultas';
 import { obterUsuarioAtual } from '@/lib/api/autenticado';
-
-/** Saudação pela hora de Brasília. */
-function saudacao(agora = new Date()): string {
-  const hora = Number(
-    new Intl.DateTimeFormat('pt-BR', {
-      hour: 'numeric',
-      hourCycle: 'h23',
-      timeZone: 'America/Sao_Paulo',
-    }).format(agora),
-  );
-  if (hora < 12) return 'Bom dia';
-  if (hora < 18) return 'Boa tarde';
-  return 'Boa noite';
-}
+import { saudacao } from '@/lib/saudacao';
 
 /**
  * Tamanho da fila (solicitações abertas). Se o resumo falhar, o menu fica sem o número. O layout
