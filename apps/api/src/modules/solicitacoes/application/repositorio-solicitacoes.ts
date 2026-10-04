@@ -25,13 +25,23 @@ export interface ItemSolicitacao {
   atualizadoEm: Date;
 }
 
-export interface SolicitacaoDetalhada extends ItemSolicitacao {
-  solicitanteId: string;
-  analistaId: string | null;
-  descricao: string;
+/** Colunas da decisão vigente, gravadas na própria solicitação (zeradas na reabertura). */
+export interface ColunasDecisao {
   decisaoComentario: string | null;
   decididoEm: Date | null;
   decididoPor: Pessoa | null;
+}
+
+/** Item da lista: o resumo mais os campos do dashboard por cargo. */
+export interface ItemListaSolicitacao extends ItemSolicitacao, ColunasDecisao {
+  /** Último ANALISE_INICIADA depois da última REABERTA; só em EM_ANALISE, senão null. */
+  analiseIniciadaEm: Date | null;
+}
+
+export interface SolicitacaoDetalhada extends ItemSolicitacao, ColunasDecisao {
+  solicitanteId: string;
+  analistaId: string | null;
+  descricao: string;
   versao: number;
 }
 
@@ -65,6 +75,9 @@ export interface CamposEditaveis {
   prioridade?: Prioridade;
 }
 
+/** decididoEm: decisão mais recente primeiro e as sem decisão no fim (ignora a direção). */
+export type OrdenacaoLista = 'dataSolicitacao' | 'prioridade' | 'decididoEm';
+
 export interface FiltrosLista {
   /** Termo já sem espaços nas pontas; busca no título e na descrição, sem acento. */
   termo?: string;
@@ -76,7 +89,7 @@ export interface FiltrosLista {
   analistaId?: string;
   /** Só as dessas áreas (área do solicitante na criação). */
   areaIds?: string[];
-  ordenarPor: 'dataSolicitacao' | 'prioridade';
+  ordenarPor: OrdenacaoLista;
   direcao: 'asc' | 'desc';
   page: number;
   pageSize: number;
@@ -104,7 +117,7 @@ export interface NovoEventoIntegracao {
 }
 
 export interface PaginaSolicitacoes {
-  itens: ItemSolicitacao[];
+  itens: ItemListaSolicitacao[];
   total: number;
 }
 

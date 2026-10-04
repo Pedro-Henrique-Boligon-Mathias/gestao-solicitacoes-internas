@@ -1,7 +1,7 @@
 import { Inbox } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { EsqueletoBotaoDestaque, EsqueletoFraseDestaque } from '@/components/esqueletos';
+import { EsqueletoBotaoDestaque } from '@/components/esqueletos';
 import { EstadoErro } from '@/components/estado-erro';
 import { EstadoVazio } from '@/components/estado-vazio';
 import { BotaoIniciarAnalise } from '@/components/solicitacoes/botao-iniciar-analise';
@@ -9,12 +9,13 @@ import { BotaoNovaSolicitacao } from '@/components/solicitacoes/botao-nova-solic
 import { Button } from '@/components/ui/button';
 import type { UsuarioAtual } from '@/features/auth/usuario';
 import type { Consulta } from '@/features/solicitacoes/consultas';
-import { formatarData, formatarDiaMes, formatarRelativo } from '@/features/solicitacoes/datas';
+import { formatarData, formatarRelativo } from '@/features/solicitacoes/datas';
 import {
   STATUS,
   type PaginaSolicitacoes,
   type ResumoDashboard,
 } from '@/features/solicitacoes/tipos';
+import { AtualizacaoAutomatica } from './atualizacao-automatica';
 import { GraficoPrioridade } from './grafico-prioridade';
 import { BlocoStatus, Destaque, URL_FILA } from './partes';
 
@@ -23,22 +24,18 @@ type PromessaLista = Promise<Consulta<PaginaSolicitacoes>>;
 
 /**
  * Bloco do resumo, linha 1 do dashboard (RF-04): card de destaque e os 4 blocos de status.
- * Só espera o resumo. Os botões do destaque que precisam de um item da lista ("Iniciar a
- * próxima", "Ver a mais recente") esperam a promessa da lista num <Suspense> próprio, sem
- * requisição extra. Sem solicitações, mostra o estado vazio; com falha, o erro só neste bloco.
+ * Só espera o resumo. O "Iniciar a próxima", que precisa de um item da fila, espera a promessa
+ * da lista num <Suspense> próprio, sem requisição extra. Sem solicitações, mostra o estado vazio; com falha, o erro só neste bloco.
  */
 export async function BlocoResumo({
   usuario,
   resumo: promessaResumo,
   fila,
-  ultimas,
 }: {
   usuario: UsuarioAtual;
   resumo: PromessaResumo;
   /** Quem analisa: a fila de análise, para "Iniciar a próxima". */
   fila?: PromessaLista;
-  /** Solicitante: as últimas, para "Ver a mais recente". */
-  ultimas?: PromessaLista;
 }) {
   const consulta = await promessaResumo;
   if (!consulta.ok) {
@@ -72,7 +69,15 @@ export async function BlocoResumo({
 
   return (
     <div className="flex flex-wrap gap-4 max-[760px]:gap-3">
-      <Destaque titulo={titulo} resumo={resumo}>
+      <Destaque
+        titulo={titulo}
+        resumo={resumo}
+        canto={
+          geral ? (
+            <AtualizacaoAutomatica geradoEm={resumo.geradoEm} className="text-hero-muted" />
+          ) : undefined
+        }
+      >
         {fila ? (
           <>
             <div className="text-hero-muted flex flex-col gap-1.5 text-sm">
@@ -92,25 +97,7 @@ export async function BlocoResumo({
               </Button>
             </div>
           </>
-        ) : (
-          <>
-            {ultimas && (
-              <Suspense fallback={<EsqueletoFraseDestaque />}>
-                <FraseMaisRecente ultimas={ultimas} />
-              </Suspense>
-            )}
-            <div className="flex flex-wrap gap-2.5 max-[760px]:[&>*]:h-11">
-              {ultimas && (
-                <Suspense fallback={<EsqueletoBotaoDestaque />}>
-                  <VerMaisRecente ultimas={ultimas} />
-                </Suspense>
-              )}
-              <Button variant="hero" asChild>
-                <Link href="/solicitacoes">Ver todas</Link>
-              </Button>
-            </div>
-          </>
-        )}
+        ) : null}
       </Destaque>
 
       <div className="grid min-w-0 flex-[7_1_420px] grid-cols-2 gap-4 max-[760px]:gap-3">
@@ -180,27 +167,4 @@ async function IniciarProxima({ usuario, fila }: { usuario: UsuarioAtual; fila: 
   const proxima = consulta.dados.data.find((item) => item.solicitante.id !== usuario.id);
   if (!proxima) return null;
   return <BotaoIniciarAnalise id={proxima.id} rotulo="Iniciar a próxima" variant="orange" />;
-}
-
-async function FraseMaisRecente({ ultimas }: { ultimas: PromessaLista }) {
-  const consulta = await ultimas;
-  const recente = consulta.ok ? consulta.dados.data[0] : undefined;
-  if (!recente) return null;
-  return (
-    <p className="text-hero-muted text-sm">
-      A mais recente é <span className="text-hero-foreground font-mono">{recente.codigo}</span>,
-      aberta em {formatarDiaMes(recente.dataSolicitacao)}.
-    </p>
-  );
-}
-
-async function VerMaisRecente({ ultimas }: { ultimas: PromessaLista }) {
-  const consulta = await ultimas;
-  const recente = consulta.ok ? consulta.dados.data[0] : undefined;
-  if (!recente) return null;
-  return (
-    <Button variant="orange" asChild>
-      <Link href={`/solicitacoes/${recente.id}`}>Ver a mais recente</Link>
-    </Button>
-  );
 }

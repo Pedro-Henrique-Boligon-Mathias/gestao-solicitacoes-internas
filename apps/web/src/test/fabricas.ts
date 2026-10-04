@@ -142,7 +142,32 @@ export function integracao(parcial: Partial<Integracao> = {}): Integracao {
   };
 }
 
-export function item(parcial: Partial<ItemLista> = {}): ItemLista {
+/**
+ * Campos do item da lista que alimentam os dashboards por cargo (Fase 3.5, PR 4B), no formato do
+ * contrato da API. Fixados aqui para os testes não dependerem de quando o schema.d.ts for
+ * regenerado; depois da regeneração, `ItemLista` já os tem e a interseção não muda nada.
+ */
+export type DecisaoItem = NonNullable<Solicitacao['decisao']>;
+export interface CamposDashboardItem {
+  /** Último início de análise; só em EM_ANALISE (null nas demais). */
+  analiseIniciadaEm: string | null;
+  /** Decisão das decididas, igual à do detalhe; null nas outras. */
+  decisao: DecisaoItem | null;
+}
+export type ItemComDashboard = ItemLista & CamposDashboardItem;
+
+/** Decisão de uma solicitação decidida (padrão: aprovada pela Carla). */
+export function decisao(parcial: Partial<DecisaoItem> = {}): DecisaoItem {
+  return {
+    resultado: 'APROVADA',
+    comentario: 'Aprovado conforme a política de perfis.',
+    decididoEm: '2026-10-02T15:00:00.000Z',
+    decididoPor: { id: CARLA.id, nome: CARLA.nome },
+    ...parcial,
+  } as DecisaoItem;
+}
+
+export function item(parcial: Partial<ItemComDashboard> = {}): ItemComDashboard {
   return {
     id: 'c0000000-0000-4000-8000-000000000042',
     codigo: 'SOL-000042',
@@ -154,6 +179,8 @@ export function item(parcial: Partial<ItemLista> = {}): ItemLista {
     analista: null,
     dataSolicitacao: '2026-10-01T13:00:00.000Z',
     atualizadoEm: '2026-10-01T13:00:00.000Z',
+    analiseIniciadaEm: null,
+    decisao: null,
     ...parcial,
   };
 }

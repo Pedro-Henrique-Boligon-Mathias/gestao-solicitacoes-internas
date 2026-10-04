@@ -84,3 +84,15 @@ export function formatarEspera(iso: string, agora: Date = new Date()): string {
   if (diferenca >= HORA) return `${Math.floor(diferenca / HORA)}h`;
   return `${Math.floor(diferenca / MINUTO)}min`;
 }
+
+/** Dias inteiros completos até agora (arredondado para baixo, nunca negativo). */
+export function diasDesde(iso: string, agora: Date = new Date()): number {
+  return Math.floor(Math.max(0, agora.getTime() - new Date(iso).getTime()) / DIA);
+}
+
+/** "há 1 dia", "há 5 dias"; menos de um dia vira "hoje". */
+export function formatarHaDias(iso: string, agora: Date = new Date()): string {
+  const dias = diasDesde(iso, agora);
+  if (dias === 0) return 'hoje';
+  return `há ${dias} ${dias === 1 ? 'dia' : 'dias'}`;
+}

@@ -17,7 +17,7 @@ import {
   type EventoDetalhado,
   type EventoIntegracao,
   type FiltrosLista,
-  type ItemSolicitacao,
+  type ItemListaSolicitacao,
   type SolicitacaoDetalhada,
   type Visao,
 } from './repositorio-solicitacoes';
@@ -71,7 +71,7 @@ export interface ConsultaLista {
 }
 
 export interface Pagina {
-  itens: ItemSolicitacao[];
+  itens: ItemListaSolicitacao[];
   page: number;
   pageSize: number;
   total: number;

@@ -10,6 +10,8 @@ import {
   type EventoIntegracao,
   type NovoEventoIntegracao,
   type FiltrosLista,
+  type ColunasDecisao,
+  type ItemListaSolicitacao,
   type ItemSolicitacao,
   type NovoEvento,
   type PaginaSolicitacoes,
@@ -36,12 +38,19 @@ interface LinhaLista {
   analista_nome: string | null;
 }
 
-interface LinhaDetalhe extends LinhaLista {
-  descricao: string;
+interface LinhaDecisao {
   decisao_comentario: string | null;
   decidido_em: Date | null;
   decidido_por_id: string | null;
   decidido_por_nome: string | null;
+}
+
+interface LinhaItemLista extends LinhaLista, LinhaDecisao {
+  analise_iniciada_em: Date | null;
+}
+
+interface LinhaDetalhe extends LinhaLista, LinhaDecisao {
+  descricao: string;
   versao: number;
 }
 
@@ -63,6 +72,49 @@ function pessoaOuNull(id: string | null, nome: string | null): Pessoa | null {
   return id !== null && nome !== null ? { id, nome } : null;
 }
 
+// Decisão vigente: colunas da própria solicitação, com o nome de quem decidiu por JOIN
+const COLUNAS_DECISAO = Prisma.sql`
+  s.decisao_comentario, s.decidido_em,
+  ud.id AS decidido_por_id, ud.nome AS decidido_por_nome`;
+
+const JOIN_DECISAO = Prisma.sql`LEFT JOIN usuarios ud ON ud.id = s.decidido_por_id`;
+
+/*
+ * Início da análise atual (dashboard): o evento mais recente entre ANALISE_INICIADA e REABERTA,
+ * só em EM_ANALISE. Se for uma REABERTA, a análise atual ainda não começou e fica null. Uma linha
+ * por solicitação da página, pelo índice (solicitacao_id, criado_em); o histórico tem RLS própria.
+ */
+const JOIN_ANALISE_INICIADA = Prisma.sql`
+  LEFT JOIN LATERAL (
+    SELECT h.tipo, h.criado_em
+      FROM solicitacao_historico h
+     WHERE s.status = 'EM_ANALISE'
+       AND h.solicitacao_id = s.id
+       AND h.tipo IN ('ANALISE_INICIADA', 'REABERTA')
+     ORDER BY h.criado_em DESC
+     LIMIT 1
+  ) ultimo_inicio ON true`;
+
+const COLUNA_ANALISE_INICIADA = Prisma.sql`
+  CASE WHEN ultimo_inicio.tipo = 'ANALISE_INICIADA' THEN ultimo_inicio.criado_em END
+    AS analise_iniciada_em`;
+
+function paraDecisao(linha: LinhaDecisao): ColunasDecisao {
+  return {
+    decisaoComentario: linha.decisao_comentario,
+    decididoEm: linha.decidido_em,
+    decididoPor: pessoaOuNull(linha.decidido_por_id, linha.decidido_por_nome),
+  };
+}
+
+function paraItemLista(linha: LinhaItemLista): ItemListaSolicitacao {
+  return {
+    ...paraItem(linha),
+    ...paraDecisao(linha),
+    analiseIniciadaEm: linha.analise_iniciada_em,
+  };
+}
+
 function paraItem(linha: LinhaLista): ItemSolicitacao {
   return {
     id: linha.id,
@@ -76,6 +128,22 @@ function paraItem(linha: LinhaLista): ItemSolicitacao {
     dataSolicitacao: linha.data_solicitacao,
     atualizadoEm: linha.atualizado_em,
   };
+}
+
+/** ORDER BY da lista; o código desempata, para a paginação ser estável. */
+function ordemDaLista({ ordenarPor, direcao }: FiltrosLista): Prisma.Sql {
+  switch (ordenarPor) {
+    // Fila: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro; ignora a direção
+    case 'prioridade':
+      return Prisma.sql`s.prioridade DESC, s.data_solicitacao ASC, s.codigo ASC`;
+    // Decididas: a decisão mais recente primeiro e as sem decisão no fim; ignora a direção
+    case 'decididoEm':
+      return Prisma.sql`s.decidido_em DESC NULLS LAST, s.codigo DESC`;
+    case 'dataSolicitacao':
+      return direcao === 'asc'
+        ? Prisma.sql`s.data_solicitacao ASC, s.codigo ASC`
+        : Prisma.sql`s.data_solicitacao DESC, s.codigo DESC`;
+  }
 }
 
 /** Escapa os curingas do LIKE (`%`, `_`) e a própria barra, para o termo valer literalmente. */
@@ -106,10 +174,9 @@ export class RepositorioSolicitacoesPrisma extends RepositorioSolicitacoes {
   async buscar(id: string, visao: Visao): Promise<SolicitacaoDetalhada | null> {
     const where = Prisma.join([Prisma.sql`s.id = ${id}::uuid`, ...visiveis(visao)], ' AND ');
     const [linha] = await this.banco.cliente.$queryRaw<LinhaDetalhe[]>`
-      SELECT ${COLUNAS_LISTA}, s.descricao, s.decisao_comentario, s.decidido_em, s.versao,
-             ud.id AS decidido_por_id, ud.nome AS decidido_por_nome
+      SELECT ${COLUNAS_LISTA}, ${COLUNAS_DECISAO}, s.descricao, s.versao
         FROM ${ORIGEM}
-        LEFT JOIN usuarios ud ON ud.id = s.decidido_por_id
+        ${JOIN_DECISAO}
        WHERE ${where}`;
     if (!linha) return null;
     return {
@@ -117,9 +184,7 @@ export class RepositorioSolicitacoesPrisma extends RepositorioSolicitacoes {
       solicitanteId: linha.solicitante_id,
       analistaId: linha.analista_id,
       descricao: linha.descricao,
-      decisaoComentario: linha.decisao_comentario,
-      decididoEm: linha.decidido_em,
-      decididoPor: pessoaOuNull(linha.decidido_por_id, linha.decidido_por_nome),
+      ...paraDecisao(linha),
       versao: linha.versao,
     };
   }
@@ -153,25 +218,21 @@ export class RepositorioSolicitacoesPrisma extends RepositorioSolicitacoes {
     }
     const where = Prisma.join(condicoes, ' AND ');
 
-    // Fila (prioridade): ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro; ignora a direção
-    const ordem =
-      filtros.ordenarPor === 'prioridade'
-        ? Prisma.sql`s.prioridade DESC, s.data_solicitacao ASC, s.codigo ASC`
-        : filtros.direcao === 'asc'
-          ? Prisma.sql`s.data_solicitacao ASC, s.codigo ASC`
-          : Prisma.sql`s.data_solicitacao DESC, s.codigo DESC`;
+    const ordem = ordemDaLista(filtros);
 
     const cliente = this.banco.cliente;
     const [contagem] = await cliente.$queryRaw<{ total: number }[]>`
       SELECT count(*)::int AS total FROM solicitacoes s WHERE ${where}`;
-    const linhas = await cliente.$queryRaw<LinhaLista[]>`
-      SELECT ${COLUNAS_LISTA}
+    const linhas = await cliente.$queryRaw<LinhaItemLista[]>`
+      SELECT ${COLUNAS_LISTA}, ${COLUNAS_DECISAO}, ${COLUNA_ANALISE_INICIADA}
         FROM ${ORIGEM}
+        ${JOIN_DECISAO}
+        ${JOIN_ANALISE_INICIADA}
        WHERE ${where}
        ORDER BY ${ordem}
        LIMIT ${filtros.pageSize} OFFSET ${(filtros.page - 1) * filtros.pageSize}`;
 
-    return { total: contagem?.total ?? 0, itens: linhas.map(paraItem) };
+    return { total: contagem?.total ?? 0, itens: linhas.map(paraItemLista) };
   }
 
   async criar(dados: {

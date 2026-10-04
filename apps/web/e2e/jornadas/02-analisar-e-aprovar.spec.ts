@@ -17,7 +17,22 @@ async function lerAprovadas(page: Page): Promise<number> {
   return Number(/^Aprovadas: (\d+)/.exec(nome)?.[1]);
 }
 
-test('RN-06/RF-04: o analista inicia a análise e aprova com comentário; o dashboard muda', async ({
+/**
+ * Totais de "Seu trabalho" no topo do dashboard do analista: "Minhas análises N" e "Fila de
+ * análise N" (Fase 3.5, PR 4B). Os dois títulos precisam estar na tela sem rolar.
+ */
+async function lerSeuTrabalho(page: Page): Promise<{ minhas: number; fila: number }> {
+  await page.goto('/dashboard');
+  const minhas = page.getByRole('heading', { name: /^Minhas análises \d+$/ });
+  const fila = page.getByRole('heading', { name: /^Fila de análise \d+$/ });
+  await expect(minhas).toBeInViewport();
+  await expect(fila).toBeInViewport();
+  const numero = async (titulo: typeof minhas) =>
+    Number(/(\d+)$/.exec((await titulo.textContent())?.trim() ?? '')?.[1]);
+  return { minhas: await numero(minhas), fila: await numero(fila) };
+}
+
+test('RN-06/RF-04: o analista inicia a análise e aprova com comentário; o dashboard muda (Minhas análises, fila e aprovadas)', async ({
   browser,
 }) => {
   const titulo = tituloUnico('Notebook para nova colaboradora');
@@ -33,10 +48,18 @@ test('RN-06/RF-04: o analista inicia a análise e aprova com comentário; o dash
 
   await comoUsuario(browser, 'carla', async (page) => {
     const aprovadasAntes = await lerAprovadas(page);
+    const trabalhoAntes = await lerSeuTrabalho(page);
 
     await page.goto(url);
     await expect(page.getByRole('heading', { level: 1, name: titulo })).toBeVisible();
     await iniciarAnalise(page);
+
+    // RF-04: a que ela iniciou sai da fila e entra em "Minhas análises"
+    await expect
+      .poll(() => lerSeuTrabalho(page))
+      .toEqual({ minhas: trabalhoAntes.minhas + 1, fila: trabalhoAntes.fila - 1 });
+
+    await page.goto(url);
     await aprovar(page, { comentario, decisor: 'Carla Mendes' });
 
     await expect.poll(() => lerAprovadas(page)).toBe(aprovadasAntes + 1);

@@ -7,10 +7,10 @@ import Link from 'next/link';
 import { Children, type ReactNode } from 'react';
 import { BotaoNovaSolicitacao } from '@/components/solicitacoes/botao-nova-solicitacao';
 import { CodigoSolicitacao } from '@/components/solicitacoes/codigo-solicitacao';
-import { SeloPrioridade } from '@/components/solicitacoes/selo-prioridade';
+import { IconePrioridade, SeloPrioridade } from '@/components/solicitacoes/selo-prioridade';
 import { CORES_STATUS } from '@/components/solicitacoes/selo-status';
 import type { UsuarioAtual } from '@/features/auth/usuario';
-import { ROTULO_STATUS_PLURAL } from '@/features/solicitacoes/rotulos';
+import { ROTULO_PRIORIDADE, ROTULO_STATUS_PLURAL } from '@/features/solicitacoes/rotulos';
 import {
   STATUS,
   type ItemSolicitacao,
@@ -49,10 +49,13 @@ export function BarraTopo({ usuario, dados }: { usuario: UsuarioAtual; dados: Re
 export function Destaque({
   titulo,
   resumo,
+  canto,
   children,
 }: {
   titulo: string;
   resumo: ResumoDashboard;
+  /** Canto direito do cabeçalho do card (o "atualizado há N s" do admin). */
+  canto?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -69,18 +72,21 @@ export function Destaque({
         aria-hidden="true"
         className="border-brand-orange/40 absolute -right-6 -bottom-12 -z-10 size-40 rounded-full border"
       />
-      <div className="flex flex-col gap-1">
-        <h1
-          id="titulo-destaque"
-          className="font-display text-lg leading-[1.2] font-semibold tracking-[-0.02em]"
-        >
-          {titulo}
-        </h1>
-        <p className="text-hero-muted text-[13px]">
-          {resumo.escopo === 'GERAL'
-            ? 'Todas as solicitações, de todas as áreas'
-            : 'Tudo o que você abriu e o andamento de cada uma'}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1
+            id="titulo-destaque"
+            className="font-display text-lg leading-[1.2] font-semibold tracking-[-0.02em]"
+          >
+            {titulo}
+          </h1>
+          <p className="text-hero-muted text-[13px]">
+            {resumo.escopo === 'GERAL'
+              ? 'Todas as solicitações, de todas as áreas'
+              : 'Tudo o que você abriu e o andamento de cada uma'}
+          </p>
+        </div>
+        {canto}
       </div>
       <p className="flex items-end gap-3">
         <span className="font-display text-[84px] leading-[0.95] font-semibold tracking-[-0.035em] max-[760px]:text-[64px]">
@@ -109,10 +115,13 @@ export function BlocoStatus({
   status,
   valor,
   total,
+  compacto = false,
 }: {
   status: Status;
   valor: number;
   total: number;
+  /** Faixa do solicitante: sem o ícone e com o número menor. */
+  compacto?: boolean;
 }) {
   const Icone = ICONE_STATUS[status];
   const pct = percentual(valor, total);
@@ -131,15 +140,25 @@ export function BlocoStatus({
           />
           {ROTULO_STATUS_PLURAL[status]}
         </span>
-        <span
-          aria-hidden="true"
-          className={cn('rounded-field grid size-9 place-items-center', CORES_STATUS[status].selo)}
-        >
-          <Icone className="size-[18px]" strokeWidth={1.8} />
-        </span>
+        {compacto ? null : (
+          <span
+            aria-hidden="true"
+            className={cn(
+              'rounded-field grid size-9 place-items-center',
+              CORES_STATUS[status].selo,
+            )}
+          >
+            <Icone className="size-[18px]" strokeWidth={1.8} />
+          </span>
+        )}
       </span>
       <span className="flex flex-wrap items-end justify-between gap-x-2">
-        <span className="font-display text-5xl leading-[0.95] font-semibold tracking-[-0.035em] max-[760px]:text-[38px]">
+        <span
+          className={cn(
+            'font-display leading-[0.95] font-semibold tracking-[-0.035em]',
+            compacto ? 'text-[34px]' : 'text-5xl max-[760px]:text-[38px]',
+          )}
+        >
           {valor}
         </span>
         <span className="text-muted-foreground text-[12.5px]">{pct}% do total</span>
@@ -217,5 +236,95 @@ export function LinhaItem({
       <SeloPrioridade prioridade={item.prioridade} />
       <span className="flex min-w-[112px] justify-end max-[760px]:min-w-0">{acao}</span>
     </li>
+  );
+}
+
+/** Selo de prioridade sobre o card escuro (fundo translúcido, texto claro). */
+export function ChipPrioridadeHero({ prioridade }: { prioridade: ItemSolicitacao['prioridade'] }) {
+  return (
+    <span className="text-hero-foreground inline-flex h-[22px] items-center gap-1.5 rounded-pill bg-white/10 px-2.5 text-xs font-medium">
+      <IconePrioridade prioridade={prioridade} />
+      {ROTULO_PRIORIDADE[prioridade]}
+    </span>
+  );
+}
+
+/**
+ * Título de card com o total ao lado, em mono ("Minhas análises 4"). O espaço entre os dois é
+ * texto de verdade, para o nome acessível sair "Minhas análises 4" e não "Minhas análises4".
+ */
+export function TituloComTotal({
+  id,
+  titulo,
+  total,
+  nivel = 'h2',
+  escuro = false,
+}: {
+  id: string;
+  titulo: string;
+  total?: number;
+  nivel?: 'h2' | 'h3';
+  escuro?: boolean;
+}) {
+  const Tag = nivel;
+  return (
+    <Tag id={id} className="font-display text-lg leading-[1.2] font-semibold tracking-[-0.02em]">
+      {titulo}
+      {total !== undefined ? (
+        <>
+          {' '}
+          <span
+            className={cn(
+              'font-mono text-[15px] font-medium tabular-nums',
+              escuro ? 'text-hero-muted' : 'text-muted-foreground',
+            )}
+          >
+            {total}
+          </span>
+        </>
+      ) : null}
+    </Tag>
+  );
+}
+
+/** Botão redondo do canto do card, que abre a mesma lista na tela de solicitações. */
+export function LinkCanto({
+  href,
+  rotulo,
+  escuro = false,
+}: {
+  href: string;
+  rotulo: string;
+  escuro?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={rotulo}
+      className={cn(
+        'grid size-9 flex-none place-items-center rounded-full transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 max-[760px]:size-11',
+        escuro
+          ? 'text-hero-foreground shadow-[inset_0_0_0_1px_rgb(255_255_255/25%)] hover:bg-white/10 focus-visible:outline-brand-orange'
+          : 'text-foreground hover:bg-muted focus-visible:outline-ring shadow-[inset_0_0_0_1px_var(--border)]',
+      )}
+    >
+      <ArrowUpRight aria-hidden="true" className="size-4" />
+    </Link>
+  );
+}
+
+/** Anéis decorativos laranja no canto do card escuro. */
+export function AneisHero() {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="border-brand-orange/60 absolute -right-16 -bottom-24 -z-10 size-64 rounded-full border"
+      />
+      <span
+        aria-hidden="true"
+        className="border-brand-orange/40 absolute -right-6 -bottom-12 -z-10 size-40 rounded-full border"
+      />
+    </>
   );
 }
