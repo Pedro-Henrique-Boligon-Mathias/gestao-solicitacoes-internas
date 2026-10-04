@@ -106,7 +106,7 @@ describe('RN-10: linha do tempo', () => {
       ['Editada', 'Ana Souza', '01/10/2026 11:00'],
       ['Análise iniciada', 'Carla Mendes', '02/10/2026 09:00'],
       ['Aprovada', 'Carla Mendes', '02/10/2026 15:00'],
-      ['Reaberta', 'Diego Lima', '03/10/2026 09:00'],
+      ['Reaberta', 'Diego Alves', '03/10/2026 09:00'],
     ];
     esperados.forEach(([rotulo, autor, data], i) => {
       expect(itens[i]).toHaveTextContent(rotulo);

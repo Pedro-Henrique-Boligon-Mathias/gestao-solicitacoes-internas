@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/gestao": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Painel de gestão do administrador: entrada e saída, por área, por analista e integrações com falha */
+        get: operations["gestaoDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/resumo": {
         parameters: {
             query?: never;
@@ -96,7 +113,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Totais por status e prioridade no escopo do usuário */
+        /** Totais por status e prioridade no escopo do usuário, no período escolhido */
         get: operations["resumoDashboard"];
         put?: never;
         post?: never;
@@ -376,6 +393,186 @@ export interface components {
              */
             tipo: "CRIADA" | "EDITADA" | "ANALISE_INICIADA" | "APROVADA" | "REJEITADA" | "REABERTA" | "EXCLUIDA";
         };
+        GestaoDto: {
+            /** @description Entrada e saída da fila, pelos eventos do histórico (excluídas ficam fora) */
+            entradaSaida: {
+                /** @description null em hoje e tudo */
+                anterior: {
+                    entraram: number;
+                    sairam: number;
+                    /** @description null sem decisões na janela anterior */
+                    tempoMedioDecisaoDias: number | null;
+                } | null;
+                /** @example 7 */
+                aprovadas: number;
+                /**
+                 * @description Eventos CRIADA e REABERTA no período
+                 * @example 12
+                 */
+                entraram: number;
+                /** @description ABERTA mais antiga (estado atual, ignora o período) */
+                maisAntigaNaFila: {
+                    area: {
+                        /** Format: uuid */
+                        id: string;
+                        nome: string;
+                    };
+                    /** @example SOL-000009 */
+                    codigo: string;
+                    /**
+                     * Format: date-time
+                     * @description dataSolicitacao da solicitação
+                     */
+                    desde: string;
+                    /** Format: uuid */
+                    id: string;
+                } | null;
+                /** @description ABERTA e EM_ANALISE agora (ignora o período) */
+                pendentesPorPrioridade: {
+                    ALTA: number;
+                    BAIXA: number;
+                    MEDIA: number;
+                };
+                /** @description Entradas do período pela prioridade */
+                prioridadeEntraram: {
+                    ALTA: number;
+                    BAIXA: number;
+                    MEDIA: number;
+                };
+                /** @example 3 */
+                rejeitadas: number;
+                /**
+                 * @description Eventos APROVADA e REJEITADA no período
+                 * @example 10
+                 */
+                sairam: number;
+                /**
+                 * @description entraram − saíram
+                 * @example 2
+                 */
+                saldo: number;
+                /** @description Baldes do período, com zero onde não houve evento */
+                serie: {
+                    entraram: number;
+                    /**
+                     * Format: date-time
+                     * @description Início do balde no fuso America/Sao_Paulo
+                     */
+                    inicio: string;
+                    sairam: number;
+                }[];
+                /**
+                 * @description Média, em dias, de (decisão − dataSolicitacao) das decisões do período
+                 * @example 10
+                 */
+                tempoMedioDecisaoDias: number | null;
+            };
+            /**
+             * Format: date-time
+             * @example 2026-10-04T10:15:00.000Z
+             */
+            geradoEm: string;
+            /** @description Evento em foco FALHOU, da tentativa mais recente para a mais antiga (estado atual) */
+            integracoesComFalha: {
+                /** @example 5 */
+                maxTentativas: number;
+                solicitacao: {
+                    area: {
+                        /** Format: uuid */
+                        id: string;
+                        nome: string;
+                    };
+                    /** @example SOL-000024 */
+                    codigo: string;
+                    /** Format: uuid */
+                    id: string;
+                    solicitante: {
+                        /** Format: uuid */
+                        id: string;
+                        nome: string;
+                    };
+                    titulo: string;
+                };
+                /** @example 5 */
+                tentativas: number;
+                /**
+                 * @description Tipo do evento em foco
+                 * @example SolicitacaoAprovada
+                 */
+                tipo: string;
+                /**
+                 * Format: date-time
+                 * @example 2026-10-04T09:40:00.000Z
+                 */
+                ultimaTentativaEm: string | null;
+                /**
+                 * @description Último erro do sistema externo, cortado em 300 caracteres
+                 * @example Sistema externo respondeu 503
+                 */
+                ultimoErro: string | null;
+            }[];
+            /** @description Período aplicado à entrada e saída, por área e por analista */
+            periodo: {
+                /**
+                 * Format: date-time
+                 * @description Instante da consulta
+                 * @example 2026-10-04T10:15:00.000Z
+                 */
+                fim: string;
+                /**
+                 * @description Balde da série: dia (7d), semana (30d e tudo até 16 semanas) ou mes; null em hoje
+                 * @example dia
+                 */
+                granularidade: components["schemas"]["Granularidade"] | null;
+                /**
+                 * Format: date-time
+                 * @description Início inclusivo; null em tudo
+                 * @example 2026-09-27T10:15:00.000Z
+                 */
+                inicio: string | null;
+                /** @enum {string} */
+                valor: "hoje" | "7d" | "30d" | "tudo";
+            };
+            /** @description Analistas e admins ativos com análise agora ou decisão no período, por emAnaliseAgora desc e nome */
+            porAnalista: {
+                analista: {
+                    /** Format: uuid */
+                    id: string;
+                    nome: string;
+                };
+                aprovadas: number;
+                /** @description Eventos APROVADA e REJEITADA da pessoa no período */
+                decididas: number;
+                /** @description EM_ANALISE com a pessoa agora (ignora o período) */
+                emAnaliseAgora: number;
+                /**
+                 * @description aprovadas / decididas; null sem decisões
+                 * @example 0.7
+                 */
+                taxaAprovacao: number | null;
+            }[];
+            /** @description Todas as áreas ativas, inclusive as zeradas */
+            porArea: {
+                area: {
+                    /** Format: uuid */
+                    id: string;
+                    nome: string;
+                };
+                porStatus: {
+                    ABERTA: number;
+                    APROVADA: number;
+                    EM_ANALISE: number;
+                    REJEITADA: number;
+                };
+                /** @description Solicitações da área com dataSolicitacao no período */
+                total: number;
+            }[];
+        };
+        /**
+         * @example dia
+         * @enum {string}
+         */
+        Granularidade: "dia" | "semana" | "mes";
         LoginDto: {
             /**
              * @description Aceita maiúsculas e espaços nas pontas (normalizado antes da busca)
@@ -648,7 +845,7 @@ export interface components {
         ResumoDto: {
             /**
              * Format: date-time
-             * @description dataSolicitacao da ABERTA mais antiga no escopo, ou null
+             * @description dataSolicitacao da ABERTA mais antiga no escopo, ou null (ignora o período)
              * @example 2026-09-20T09:00:00.000Z
              */
             aberturaMaisAntiga: string | null;
@@ -659,7 +856,7 @@ export interface components {
              */
             escopo: "GERAL" | "PROPRIAS";
             /**
-             * @description ABERTA de prioridade ALTA no escopo
+             * @description ABERTA de prioridade ALTA no escopo (ignora o período)
              * @example 3
              */
             filaAlta: number;
@@ -668,6 +865,30 @@ export interface components {
              * @example 2026-10-03T10:15:00.000Z
              */
             geradoEm: string;
+            /**
+             * @description Período aplicado a total, porStatus e porPrioridade
+             * @example {
+             *       "fim": "2026-10-04T10:15:00.000Z",
+             *       "inicio": "2026-09-27T10:15:00.000Z",
+             *       "valor": "7d"
+             *     }
+             */
+            periodo: {
+                /**
+                 * Format: date-time
+                 * @description Instante da consulta
+                 * @example 2026-10-04T10:15:00.000Z
+                 */
+                fim: string;
+                /**
+                 * Format: date-time
+                 * @description Início inclusivo; null em tudo
+                 * @example 2026-09-27T10:15:00.000Z
+                 */
+                inicio: string | null;
+                /** @enum {string} */
+                valor: "hoje" | "7d" | "30d" | "tudo";
+            };
             /**
              * @example {
              *       "ALTA": 10,
@@ -694,7 +915,10 @@ export interface components {
                 EM_ANALISE: number;
                 REJEITADA: number;
             };
-            /** @example 42 */
+            /**
+             * @description Solicitações no escopo com dataSolicitacao no período
+             * @example 42
+             */
             total: number;
         };
         SolicitacaoDto: {
@@ -1113,9 +1337,62 @@ export interface operations {
             };
         };
     };
+    gestaoDashboard: {
+        parameters: {
+            query?: {
+                /** @description Janela móvel no fuso America/Sao_Paulo: hoje (desde a meia-noite), 7d, 30d ou tudo (padrão) */
+                periodo?: "hoje" | "7d" | "30d" | "tudo";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Painel de gestão */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GestaoDto"];
+                };
+            };
+            /** @description Período inválido (DADOS_INVALIDOS) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não é administrador (ACESSO_NEGADO) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     resumoDashboard: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Janela móvel no fuso America/Sao_Paulo: hoje (desde a meia-noite), 7d, 30d ou tudo (padrão) */
+                periodo?: "hoje" | "7d" | "30d" | "tudo";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1129,6 +1406,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResumoDto"];
+                };
+            };
+            /** @description Período inválido (DADOS_INVALIDOS) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
@@ -1152,8 +1438,8 @@ export interface operations {
                 /** @description prioridade: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro (ignora direcao). decididoEm: a decisão mais recente primeiro e as sem decisão no fim (ignora direcao) */
                 ordenarPor?: "dataSolicitacao" | "prioridade" | "decididoEm";
                 direcao?: "asc" | "desc";
-                /** @description eu: só as que têm o usuário atual como analista responsável */
-                analista?: "eu";
+                /** @description eu: só as que têm o usuário atual como analista responsável; <id> (UUID): só as desse analista. Ignorado para o solicitante, que vê todas as próprias */
+                analista?: "eu" | string;
                 /** @description Id da área (UUID); pode repetir: area=<id>&area=<id> */
                 area?: string | string[];
                 page?: number;

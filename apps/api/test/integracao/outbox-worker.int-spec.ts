@@ -254,6 +254,79 @@ describe('ADR-010: worker da outbox', () => {
     });
   });
 
+  describe('RN-14: ultima_tentativa_em (PR 4C)', () => {
+    /** Roda um ciclo e devolve a ultima_tentativa_em do evento e a janela do ciclo. */
+    async function cicloMedido(id: string) {
+      const antes = Date.now();
+      await ciclo();
+      const depois = Date.now();
+      const linha = await eventoPorId(owner, id);
+      return { linha, antes, depois };
+    }
+
+    function esperarNaJanela(valor: Date | null | undefined, antes: number, depois: number) {
+      expect(valor).toBeInstanceOf(Date);
+      expect(valor!.getTime()).toBeGreaterThanOrEqual(antes - SEGUNDO);
+      expect(valor!.getTime()).toBeLessThanOrEqual(depois + SEGUNDO);
+    }
+
+    it('RN-14: evento novo, ainda sem tentativa → ultima_tentativa_em null', async () => {
+      const id = await inserirEvento(owner, await novaSolicitacao());
+      const linha = await eventoPorId(owner, id);
+      expect(linha).toHaveProperty('ultima_tentativa_em', null);
+    });
+
+    it('RN-14: worker grava ultima_tentativa_em a cada tentativa — sucesso (2xx)', async () => {
+      const id = await inserirEvento(owner, await novaSolicitacao());
+      const { linha, antes, depois } = await cicloMedido(id);
+      expect(linha.status).toBe('ENVIADO');
+      esperarNaJanela(linha.ultima_tentativa_em, antes, depois);
+    });
+
+    it('RN-14: worker grava ultima_tentativa_em a cada tentativa — falha transitória (503)', async () => {
+      servidor.responder = () => ({ status: 503 });
+      const id = await inserirEvento(owner, await novaSolicitacao());
+
+      const primeira = await cicloMedido(id);
+      expect(primeira.linha).toMatchObject({ status: 'PENDENTE', tentativas: 1 });
+      esperarNaJanela(primeira.linha.ultima_tentativa_em, primeira.antes, primeira.depois);
+
+      await new Promise((resolver) => setTimeout(resolver, 50));
+      await liberar(id);
+      const segunda = await cicloMedido(id);
+      expect(segunda.linha).toMatchObject({ status: 'PENDENTE', tentativas: 2 });
+      esperarNaJanela(segunda.linha.ultima_tentativa_em, segunda.antes, segunda.depois);
+      // A segunda tentativa sobrescreve o horário da primeira
+      expect(segunda.linha.ultima_tentativa_em!.getTime()).toBeGreaterThan(
+        primeira.linha.ultima_tentativa_em!.getTime(),
+      );
+    });
+
+    it('RN-14: worker grava ultima_tentativa_em a cada tentativa — erro permanente (400 → FALHOU)', async () => {
+      servidor.responder = () => ({ status: 400 });
+      const id = await inserirEvento(owner, await novaSolicitacao());
+      const { linha, antes, depois } = await cicloMedido(id);
+      expect(linha.status).toBe('FALHOU');
+      esperarNaJanela(linha.ultima_tentativa_em, antes, depois);
+    });
+
+    it('RN-14: worker grava ultima_tentativa_em a cada tentativa — tempo esgotado', async () => {
+      servidor.responder = () => ({ status: 201, atrasoMs: 5 * SEGUNDO });
+      const id = await inserirEvento(owner, await novaSolicitacao());
+      const { linha, antes, depois } = await cicloMedido(id);
+      expect(linha).toMatchObject({ status: 'PENDENTE', tentativas: 1 });
+      esperarNaJanela(linha.ultima_tentativa_em, antes, depois);
+    });
+
+    it('RN-14: evento agendado para o futuro não é tentado → ultima_tentativa_em continua null', async () => {
+      const id = await inserirEvento(owner, await novaSolicitacao(), {
+        proxima_tentativa_em: new Date(Date.now() + 60 * SEGUNDO),
+      });
+      const { linha } = await cicloMedido(id);
+      expect(linha).toMatchObject({ tentativas: 0, ultima_tentativa_em: null });
+    });
+  });
+
   describe('ordem por solicitação', () => {
     it('ADR-010: com o SolicitacaoAprovada aguardando nova tentativa, o SolicitacaoReaberta da mesma solicitação não sai', async () => {
       const solicitacao = await novaSolicitacao();

@@ -6,6 +6,7 @@ import { EstadoErro } from '@/components/estado-erro';
 import { CodigoSolicitacao } from '@/components/solicitacoes/codigo-solicitacao';
 import { SeloStatus } from '@/components/solicitacoes/selo-status';
 import type { UsuarioAtual } from '@/features/auth/usuario';
+import type { Periodo } from '@/features/dashboard/periodo';
 import { listarSolicitacoes, obterResumo, type Consulta } from '@/features/solicitacoes/consultas';
 import { formatarDiaMes, formatarHaDias } from '@/features/solicitacoes/datas';
 import type {
@@ -28,12 +29,21 @@ const URL_EM_ANDAMENTO = '/solicitacoes?status=ABERTA&status=EM_ANALISE';
 
 /**
  * Dashboard do solicitante (RF-04, RN-13): "Em andamento" (destaque), "Decididas recentemente" e
- * "Seus números". As três consultas saem juntas daqui; cada bloco tem o próprio <Suspense>,
- * esqueleto e erro. Sem fila e sem atualização automática: o que muda aqui muda por ação de outra
+ * "Seus números". As consultas saem juntas daqui; cada bloco tem o próprio <Suspense>,
+ * esqueleto e erro. Só "Seus números" segue o período; os outros blocos mostram o estado atual.
+ * Sem fila e sem atualização automática: o que muda aqui muda por ação de outra
  * pessoa e pode esperar a próxima visita.
  */
-export async function DashboardSolicitante({ usuario }: { usuario: UsuarioAtual }) {
+export async function DashboardSolicitante({
+  usuario,
+  periodo = 'tudo',
+}: {
+  usuario: UsuarioAtual;
+  periodo?: Periodo;
+}) {
+  // Sem período, o mesmo resumo do contador do menu (deduplicado por requisição)
   const resumo = obterResumo();
+  const resumoPeriodo = periodo === 'tudo' ? resumo : obterResumo(periodo);
   const emAndamento = listarSolicitacoes(
     { status: ['ABERTA', 'EM_ANALISE'], ordenarPor: 'dataSolicitacao', direcao: 'desc' },
     5,
@@ -48,6 +58,7 @@ export async function DashboardSolicitante({ usuario }: { usuario: UsuarioAtual 
       <h1 className="sr-only">Dashboard</h1>
       <BarraTopo
         usuario={usuario}
+        periodo={periodo}
         dados={
           <Suspense fallback={<EsqueletoDataResumo />}>
             <DataResumo resumo={resumo} />
@@ -65,7 +76,7 @@ export async function DashboardSolicitante({ usuario }: { usuario: UsuarioAtual 
       </div>
 
       <Suspense fallback={<EsqueletoResumo />}>
-        <SeusNumeros usuario={usuario} resumo={resumo} />
+        <SeusNumeros usuario={usuario} resumo={resumoPeriodo} periodo={periodo} />
       </Suspense>
     </>
   );

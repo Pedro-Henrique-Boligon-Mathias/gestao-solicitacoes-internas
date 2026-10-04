@@ -10,6 +10,7 @@ import {
   CARLA,
   DIEGO,
   decisao,
+  gestao,
   item,
   pagina,
   pessoa,
@@ -25,8 +26,8 @@ import PaginaDashboard from './page';
 /*
  * Dashboard renderizado pela página (Server Component), com as consultas simuladas. Desde a
  * Fase 3.5 (PR 4B) há um dashboard por cargo: solicitante (Em andamento, Decididas recentemente,
- * Seus números), analista (Seu trabalho e Indicadores) e admin (a "Visão geral" de antes, que
- * vira painel de gestão no 4C). Cobre também a carga em blocos: cabeçalho na hora e cada bloco
+ * Seus números), analista (Seu trabalho e Indicadores) e admin (painel de gestão do 4C, coberto em
+ * painel-gestao.test.tsx; aqui só o que é comum aos três). Cobre também a carga em blocos: cabeçalho na hora e cada bloco
  * no seu <Suspense>, com esqueleto e erro próprios (RF-04, ADR-012, RNF-05).
  *
  * As datas relativas ("há 2 dias", "atualizado há 12 s") usam um relógio fixo: só o Date é falso
@@ -55,6 +56,7 @@ vi.mock('next/navigation', () => ({
 
 const consultas = vi.hoisted(() => ({
   obterResumo: vi.fn(),
+  obterPainelGestao: vi.fn(),
   listarSolicitacoes: vi.fn(),
   listarAreas: vi.fn(),
   detalharSolicitacao: vi.fn(),
@@ -183,7 +185,7 @@ const FILA_ANALISTA = [
   item({ id: id(41), codigo: 'SOL-000041', titulo: 'Troca do teclado da recepção' }),
 ];
 
-// ---- Admin (Diego): a "Visão geral" de antes do 4B ----
+// ---- Admin (Diego): listas do seed, se o painel ainda as pedir (o 4C não as mostra) ----
 
 const FILA_ADMIN = [
   item({
@@ -280,12 +282,14 @@ async function renderizar(usuario: Usuario, cenario: Cenario = {}) {
 
   const retornos: Required<Cenario> = { ...padrao(usuario), ...cenario };
   consultas.obterResumo.mockImplementation(() => promessa(retornos.resumo));
+  // Painel de gestão do admin (4C): os testes dele ficam em painel-gestao.test.tsx
+  consultas.obterPainelGestao.mockImplementation(() => promessa(ok(gestao())));
   consultas.listarSolicitacoes.mockImplementation((filtros: Partial<Filtros>) => {
     const lista = qualLista(filtros ?? {});
     return promessa(lista ? retornos[lista] : ok(pagina([])));
   });
 
-  return renderizarServidor(<PaginaDashboard />);
+  return renderizarServidor(<PaginaDashboard searchParams={Promise.resolve({})} />);
 }
 
 /** Lista com os itens informados (atalho para o cenário). */
@@ -421,7 +425,7 @@ describe('RF-04/RN-13: dashboard do solicitante', () => {
       'Carla Mendes: Aprovado. O time de suporte vai entrar em contato.',
     );
     expect(secao).toHaveTextContent(
-      'Diego Lima: Rejeitado. Não há orçamento previsto neste semestre.',
+      'Diego Alves: Rejeitado. Não há orçamento previsto neste semestre.',
     );
   });
 
@@ -621,83 +625,6 @@ describe('RF-04/RN-07: dashboard do analista', () => {
   });
 });
 
-describe('RF-04: dashboard do admin (a "Visão geral" continua no 4B)', () => {
-  prepararAmbiente();
-
-  it('RF-04: admin vê "Visão geral", o total e o botão "Nova solicitação"', async () => {
-    await renderizar(DIEGO);
-
-    expect(screen.getByRole('heading', { name: 'Visão geral' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Nova solicitação' })).toBeInTheDocument();
-    expect(screen.getAllByText('40').length).toBeGreaterThan(0);
-  });
-
-  it('RF-04: a "Visão geral" mostra "atualizado há N s" a partir do geradoEm', async () => {
-    await renderizar(DIEGO);
-
-    expect(screen.getAllByText(/atualizado há 12 s/).length).toBeGreaterThan(0);
-  });
-
-  it('RF-04: destaque do admin mostra a fila de alta e leva para "Ver a fila"', async () => {
-    await renderizar(DIEGO);
-
-    expect(screen.getByText(/3 de alta prioridade/)).toBeInTheDocument();
-    esperarHref(screen.getByRole('link', { name: 'Ver a fila' }), '/solicitacoes', {
-      status: 'ABERTA',
-      ordenarPor: 'prioridade',
-    });
-  });
-
-  it('RF-04: "Iniciar a próxima" inicia a primeira da fila e vai para o detalhe', async () => {
-    acoes.iniciarAnalise.mockResolvedValue({
-      ok: true,
-      solicitacao: solicitacao({ id: FILA_ADMIN[0]!.id, status: 'EM_ANALISE' }),
-    });
-    const pessoaUsuaria = userEvent.setup();
-    await renderizar(DIEGO);
-
-    await pessoaUsuaria.click(screen.getByRole('button', { name: 'Iniciar a próxima' }));
-
-    await waitFor(() => expect(acoes.iniciarAnalise).toHaveBeenCalledWith(FILA_ADMIN[0]!.id));
-    await waitFor(() =>
-      expect(roteador.push).toHaveBeenCalledWith(`/solicitacoes/${FILA_ADMIN[0]!.id}`),
-    );
-  });
-
-  it('RF-04: "Iniciar a próxima" some com a fila vazia', async () => {
-    await renderizar(DIEGO, {
-      fila: comItens([]),
-      resumo: ok(
-        resumo({
-          porStatus: { ABERTA: 0, EM_ANALISE: 8, APROVADA: 14, REJEITADA: 6 },
-          total: 28,
-          filaAlta: 0,
-          aberturaMaisAntiga: null,
-        }),
-      ),
-    });
-
-    expect(screen.queryByRole('button', { name: 'Iniciar a próxima' })).toBeNull();
-  });
-
-  it('RN-04/RN-07: "Fila de análise" tem "Iniciar análise" em cada item, menos nos do próprio usuário', async () => {
-    await renderizar(DIEGO);
-
-    const secao = secaoDo('Fila de análise');
-    expect(within(secao).getByText('Servidor de arquivos fora do ar')).toBeInTheDocument();
-    expect(within(secao).getByText('Licença do editor de planilhas')).toBeInTheDocument();
-    expect(within(secao).getAllByRole('button', { name: 'Iniciar análise' })).toHaveLength(1);
-  });
-
-  it('RF-04: admin vê "Minhas análises em andamento"', async () => {
-    await renderizar(DIEGO);
-
-    expect(
-      within(secaoDo('Minhas análises em andamento')).getByText('Novo usuário no ERP'),
-    ).toBeTruthy();
-  });
-});
-
 describe('RF-04: blocos de status (contrato dos três dashboards)', () => {
   prepararAmbiente();
 
@@ -801,19 +728,6 @@ describe('RF-04/ADR-012: dashboard carregado em blocos', () => {
     expect(screen.queryByRole('heading', { name: /^Minhas análises/ })).toBeNull();
   });
 
-  it('RF-04: admin — enquanto as listas não resolvem, aparece o esqueleto das listas e a visão geral já aparece', async () => {
-    const { container } = await renderizar(DIEGO, {
-      fila: 'pendente',
-      minhasAnalises: 'pendente',
-    });
-
-    expect(esqueletosDasListas().length).toBeGreaterThan(0);
-    expect(esqueletoDoResumo()).toBeNull();
-    expect(screen.getByRole('heading', { name: 'Visão geral' })).toBeInTheDocument();
-    expect(linkPara(container, '/solicitacoes', { status: 'ABERTA' })).toHaveTextContent('12');
-    expect(screen.queryByRole('heading', { name: 'Fila de análise' })).toBeNull();
-  });
-
   it('RF-04: solicitante — esqueleto das listas enquanto o em andamento e as decididas não chegam', async () => {
     await renderizar(ANA, { emAndamento: 'pendente', decididas: 'pendente' });
 
@@ -870,18 +784,6 @@ describe('RF-04/ADR-012: dashboard carregado em blocos', () => {
     expect(roteador.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('RF-04: admin — falha nas listas → resumo visível e erro com o requestId só no bloco das listas', async () => {
-    const { container } = await renderizar(DIEGO, {
-      fila: falha('req-listas'),
-      minhasAnalises: falha('req-listas'),
-    });
-
-    expect(screen.getByRole('heading', { name: 'Visão geral' })).toBeInTheDocument();
-    expect(linkPara(container, '/solicitacoes', { status: 'APROVADA' })).toHaveTextContent('14');
-    expect(screen.getByText('req-listas')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Tentar novamente' })).toHaveLength(1);
-  });
-
   it('RF-04: solicitante — falha no em andamento → "Seus números" visível e erro só nesse bloco', async () => {
     await renderizar(ANA, { emAndamento: falha('req-andamento') });
 
@@ -904,16 +806,6 @@ describe('RF-04/ADR-012: dashboard carregado em blocos', () => {
     expect(tentar).toHaveLength(1);
     await pessoaUsuaria.click(tentar[0]!);
     expect(roteador.refresh).toHaveBeenCalledTimes(1);
-  });
-
-  it('RF-04: admin — falha só no resumo → listas visíveis e erro no bloco do resumo', async () => {
-    await renderizar(DIEGO, { resumo: falha('req-resumo') });
-
-    expect(
-      within(secaoDo('Fila de análise')).getByText('Servidor de arquivos fora do ar'),
-    ).toBeTruthy();
-    expect(screen.getByText('req-resumo')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Tentar novamente' })).toHaveLength(1);
   });
 
   it('RF-04: a rota não tem loading.tsx próprio (ele seguraria o cabeçalho; os esqueletos são por bloco)', () => {

@@ -13,7 +13,8 @@ export interface Filtros {
   area: string[];
   ordenarPor: OrdenarPor;
   direcao: Direcao;
-  analista?: 'eu';
+  /** 'eu' (minhas análises) ou o id de um analista (linha do analista no painel de gestão). */
+  analista?: string;
   page: number;
 }
 
@@ -56,7 +57,8 @@ export function lerFiltros(params: ParametrosBusca): Filtros {
 
   if (primeiro(params, 'ordenarPor') === 'prioridade') filtros.ordenarPor = 'prioridade';
   if (primeiro(params, 'direcao') === 'asc') filtros.direcao = 'asc';
-  if (primeiro(params, 'analista') === 'eu') filtros.analista = 'eu';
+  const analista = primeiro(params, 'analista');
+  if (analista === 'eu' || (analista && ehUuid(analista))) filtros.analista = analista;
 
   const textoPagina = primeiro(params, 'page') ?? '';
   const pagina = /^\d+$/.test(textoPagina) ? Number(textoPagina) : 1;

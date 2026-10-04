@@ -62,7 +62,8 @@ export interface ConsultaLista {
   q?: string;
   status?: Status[];
   prioridade?: Prioridade[];
-  analista?: 'eu';
+  /** `eu` ou o id (UUID) de um analista. */
+  analista?: string;
   area?: string[];
   ordenarPor: FiltrosLista['ordenarPor'];
   direcao: FiltrosLista['direcao'];
@@ -84,6 +85,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** Status em que a edição e a exclusão podem acontecer para este usuário (RN-02, RN-09). */
 function statusEditaveis(executor: Executor): Status[] {
   return executor.cargo === 'ADMIN' ? ['ABERTA', 'EM_ANALISE'] : ['ABERTA'];
+}
+
+/**
+ * `eu` é o próprio usuário. O id de outro analista só vale para analista e administrador; para o
+ * solicitante, é ignorado (RN-13): ele continua vendo todas as próprias.
+ */
+function filtroDeAnalista(executor: Executor, analista: string | undefined): string | undefined {
+  if (analista === 'eu') return executor.id;
+  if (!analista || executor.cargo === 'SOLICITANTE') return undefined;
+  return analista;
 }
 
 function visaoDe(executor: Executor): Visao {
@@ -112,7 +123,7 @@ export class SolicitacoesService {
         codigo: codigo ?? undefined,
         status: consulta.status,
         prioridade: consulta.prioridade,
-        analistaId: consulta.analista === 'eu' ? executor.id : undefined,
+        analistaId: filtroDeAnalista(executor, consulta.analista),
         areaIds: consulta.area,
         ordenarPor: consulta.ordenarPor,
         direcao: consulta.direcao,

@@ -7,6 +7,7 @@ import { CodigoSolicitacao } from '@/components/solicitacoes/codigo-solicitacao'
 import { SeloPrioridade } from '@/components/solicitacoes/selo-prioridade';
 import { Button } from '@/components/ui/button';
 import type { UsuarioAtual } from '@/features/auth/usuario';
+import { rotuloPeriodo, type Periodo } from '@/features/dashboard/periodo';
 import { listarSolicitacoes, obterResumo, type Consulta } from '@/features/solicitacoes/consultas';
 import { formatarData, formatarHaDias } from '@/features/solicitacoes/datas';
 import { ROTULO_PRIORIDADE } from '@/features/solicitacoes/rotulos';
@@ -40,10 +41,19 @@ const URL_MINHAS_ANALISES = '/solicitacoes?status=EM_ANALISE&analista=eu';
  * Dashboard do analista (RF-04, RN-07): "Seu trabalho" (Minhas análises e a Fila, lado a lado no
  * desktop e em abas no celular) e depois os "Indicadores" de todas as áreas. As três consultas
  * saem juntas daqui. As listas não esperam o resumo: o que vem dele no card da fila (a frase de
- * prioridade alta e o "atualizado há") chega num <Suspense> próprio.
+ * prioridade alta e o "atualizado há") chega num <Suspense> próprio. Só os "Indicadores" seguem
+ * o período; "Seu trabalho" mostra sempre o estado atual.
  */
-export async function DashboardAnalista({ usuario }: { usuario: UsuarioAtual }) {
+export async function DashboardAnalista({
+  usuario,
+  periodo = 'tudo',
+}: {
+  usuario: UsuarioAtual;
+  periodo?: Periodo;
+}) {
+  // Sem período, o mesmo resumo do contador do menu (deduplicado por requisição)
   const resumo = obterResumo();
+  const resumoPeriodo = periodo === 'tudo' ? resumo : obterResumo(periodo);
   const fila = listarSolicitacoes({ status: ['ABERTA'], ordenarPor: 'prioridade' }, 5);
   const minhasAnalises = listarSolicitacoes(
     { status: ['EM_ANALISE'], analista: 'eu', ordenarPor: 'prioridade' },
@@ -55,6 +65,7 @@ export async function DashboardAnalista({ usuario }: { usuario: UsuarioAtual }) 
       <h1 className="sr-only">Dashboard</h1>
       <BarraTopo
         usuario={usuario}
+        periodo={periodo}
         dados={
           <Suspense fallback={<EsqueletoDataResumo />}>
             <DataResumo resumo={resumo} />
@@ -84,7 +95,7 @@ export async function DashboardAnalista({ usuario }: { usuario: UsuarioAtual }) 
       </section>
 
       <Suspense fallback={<EsqueletoResumo />}>
-        <Indicadores resumo={resumo} />
+        <Indicadores resumo={resumoPeriodo} periodo={periodo} />
       </Suspense>
     </>
   );
@@ -394,7 +405,13 @@ function ProximaParaVoce({ item }: { item: ItemSolicitacao }) {
  * gráfico por prioridade. O "N com você" fica só no título de Minhas análises (revisão de
  * 04/10/2026), porque os blocos de status ganham o filtro de período no 4C.
  */
-async function Indicadores({ resumo: promessaResumo }: { resumo: PromessaResumo }) {
+async function Indicadores({
+  resumo: promessaResumo,
+  periodo,
+}: {
+  resumo: PromessaResumo;
+  periodo: Periodo;
+}) {
   const consulta = await promessaResumo;
   if (!consulta.ok) {
     return (
@@ -408,7 +425,8 @@ async function Indicadores({ resumo: promessaResumo }: { resumo: PromessaResumo 
   return (
     <section aria-labelledby="titulo-indicadores" className="flex flex-col gap-3">
       <h2 id="titulo-indicadores" className={CLASSE_TITULO_SECAO}>
-        Indicadores <span className="font-normal normal-case">· todas as áreas</span>
+        Indicadores · {rotuloPeriodo(periodo)}{' '}
+        <span className="font-normal normal-case">· todas as áreas</span>
       </h2>
       <div className="grid items-start gap-4 max-[760px]:gap-3 min-[1024px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div className="grid grid-cols-2 gap-3 min-[761px]:grid-cols-[1.25fr_1fr_1fr]">

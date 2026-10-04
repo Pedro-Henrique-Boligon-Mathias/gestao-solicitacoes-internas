@@ -10,6 +10,7 @@ import { CodigoSolicitacao } from '@/components/solicitacoes/codigo-solicitacao'
 import { IconePrioridade, SeloPrioridade } from '@/components/solicitacoes/selo-prioridade';
 import { CORES_STATUS } from '@/components/solicitacoes/selo-status';
 import type { UsuarioAtual } from '@/features/auth/usuario';
+import type { Periodo } from '@/features/dashboard/periodo';
 import { ROTULO_PRIORIDADE, ROTULO_STATUS_PLURAL } from '@/features/solicitacoes/rotulos';
 import {
   STATUS,
@@ -18,6 +19,7 @@ import {
   type Status,
 } from '@/features/solicitacoes/tipos';
 import { cn } from '@/lib/utils';
+import { SeletorPeriodo } from './seletor-periodo';
 
 const ICONE_STATUS: Record<Status, LucideIcon> = {
   ABERTA: Inbox,
@@ -36,12 +38,24 @@ const percentual = (valor: number, total: number) =>
  * Linha de ações da página: a data dos dados à esquerda e a ação principal ("Nova solicitação")
  * no canto direito. Não espera consulta nenhuma: a data chega com o resumo, em `dados`.
  */
-export function BarraTopo({ usuario, dados }: { usuario: UsuarioAtual; dados: ReactNode }) {
+export function BarraTopo({
+  usuario,
+  dados,
+  periodo,
+}: {
+  usuario: UsuarioAtual;
+  dados: ReactNode;
+  /** Com o período, o cabeçalho ganha o seletor (vale só para os indicadores). */
+  periodo?: Periodo;
+}) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-1">
       <div className="flex min-h-5 items-center">{dados}</div>
-      {/* No celular, quem cria é o "+" da barra de navegação */}
-      <BotaoNovaSolicitacao usuario={usuario} className="max-[760px]:hidden" />
+      <div className="flex items-center gap-3">
+        {periodo && <SeletorPeriodo periodo={periodo} />}
+        {/* No celular, quem cria é o "+" da barra de navegação */}
+        <BotaoNovaSolicitacao usuario={usuario} className="max-[760px]:hidden" />
+      </div>
     </div>
   );
 }

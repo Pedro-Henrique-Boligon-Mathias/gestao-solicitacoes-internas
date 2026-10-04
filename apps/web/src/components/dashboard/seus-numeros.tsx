@@ -1,4 +1,4 @@
-import { Inbox } from 'lucide-react';
+import { CalendarX, Inbox } from 'lucide-react';
 import Link from 'next/link';
 import { EstadoErro } from '@/components/estado-erro';
 import { EstadoVazio } from '@/components/estado-vazio';
@@ -6,6 +6,7 @@ import { BotaoNovaSolicitacao } from '@/components/solicitacoes/botao-nova-solic
 import { SeloPrioridade } from '@/components/solicitacoes/selo-prioridade';
 import { CORES_STATUS } from '@/components/solicitacoes/selo-status';
 import type { UsuarioAtual } from '@/features/auth/usuario';
+import { rotuloPeriodo, type Periodo } from '@/features/dashboard/periodo';
 import type { Consulta } from '@/features/solicitacoes/consultas';
 import { ROTULO_PRIORIDADE, ROTULO_STATUS_PLURAL } from '@/features/solicitacoes/rotulos';
 import { PRIORIDADES, STATUS, type ResumoDashboard } from '@/features/solicitacoes/tipos';
@@ -19,10 +20,14 @@ import { BlocoStatus } from './partes';
 export async function SeusNumeros({
   usuario,
   resumo: promessaResumo,
+  periodo = 'tudo',
 }: {
   usuario: UsuarioAtual;
+  /** Resumo já filtrado pelo período. */
   resumo: Promise<Consulta<ResumoDashboard>>;
+  periodo?: Periodo;
 }) {
+  const titulo = `Seus números · ${rotuloPeriodo(periodo)}`;
   const consulta = await promessaResumo;
   if (!consulta.ok) {
     return (
@@ -33,10 +38,21 @@ export async function SeusNumeros({
   }
   const resumo = consulta.dados;
 
+  if (resumo.total === 0 && periodo !== 'tudo') {
+    return (
+      <section className="bg-card rounded-card">
+        <h2 className="sr-only">{titulo}</h2>
+        <EstadoVazio Icone={CalendarX} titulo="Nenhuma solicitação no período">
+          Escolha um período maior no seletor acima.
+        </EstadoVazio>
+      </section>
+    );
+  }
+
   if (resumo.total === 0) {
     return (
       <section className="bg-card rounded-card">
-        <h2 className="sr-only">Seus números</h2>
+        <h2 className="sr-only">{titulo}</h2>
         <EstadoVazio
           Icone={Inbox}
           titulo="Você ainda não tem solicitações"
@@ -54,7 +70,7 @@ export async function SeusNumeros({
         id="titulo-seus-numeros"
         className="text-muted-foreground px-1 text-[13px] font-semibold tracking-[0.06em] uppercase"
       >
-        Seus números
+        {titulo}
       </h2>
       <div className="grid grid-cols-2 gap-3 min-[761px]:grid-cols-3 min-[1180px]:grid-cols-[1.3fr_repeat(4,1fr)_1.7fr]">
         <TileTotal resumo={resumo} />

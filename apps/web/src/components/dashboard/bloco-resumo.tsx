@@ -12,10 +12,12 @@ import type { Consulta } from '@/features/solicitacoes/consultas';
 import { formatarData, formatarRelativo } from '@/features/solicitacoes/datas';
 import {
   STATUS,
+  type PainelGestao,
   type PaginaSolicitacoes,
   type ResumoDashboard,
 } from '@/features/solicitacoes/tipos';
 import { AtualizacaoAutomatica } from './atualizacao-automatica';
+import { DestaqueGestao, DestaqueGestaoCarregando } from './destaque-gestao';
 import { GraficoPrioridade } from './grafico-prioridade';
 import { BlocoStatus, Destaque, URL_FILA } from './partes';
 
@@ -31,11 +33,14 @@ export async function BlocoResumo({
   usuario,
   resumo: promessaResumo,
   fila,
+  gestao,
 }: {
   usuario: UsuarioAtual;
   resumo: PromessaResumo;
   /** Quem analisa: a fila de análise, para "Iniciar a próxima". */
   fila?: PromessaLista;
+  /** Admin: o painel de gestão, para o fato e o botão das integrações com falha. */
+  gestao?: Promise<Consulta<PainelGestao>>;
 }) {
   const consulta = await promessaResumo;
   if (!consulta.ok) {
@@ -78,7 +83,11 @@ export async function BlocoResumo({
           ) : undefined
         }
       >
-        {fila ? (
+        {gestao ? (
+          <Suspense fallback={<DestaqueGestaoCarregando resumo={resumo} />}>
+            <DestaqueGestao resumo={resumo} gestao={gestao} />
+          </Suspense>
+        ) : fila ? (
           <>
             <div className="text-hero-muted flex flex-col gap-1.5 text-sm">
               <p className="text-hero-foreground">
