@@ -16,7 +16,14 @@ import type {
 } from '@/features/solicitacoes/tipos';
 import { cn } from '@/lib/utils';
 import { DataResumo } from './bloco-resumo';
-import { AneisHero, BarraTopo, ChipPrioridadeHero, LinkCanto, TituloComTotal } from './partes';
+import {
+  AneisHero,
+  BarraTopo,
+  ChipPrioridadeHero,
+  CLASSE_DASHBOARD_TELA,
+  LinkCanto,
+  TituloComTotal,
+} from './partes';
 import { ReguaEtapas } from './regua-etapas';
 import { SeusNumeros } from './seus-numeros';
 
@@ -54,7 +61,7 @@ export async function DashboardSolicitante({
   );
 
   return (
-    <>
+    <div className={CLASSE_DASHBOARD_TELA}>
       <h1 className="sr-only">Dashboard</h1>
       <BarraTopo
         usuario={usuario}
@@ -66,7 +73,7 @@ export async function DashboardSolicitante({
         }
       />
 
-      <div className="grid items-start gap-4 empty:hidden max-[760px]:gap-3 min-[1024px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+      <div className="grid items-start gap-4 tela:min-h-0 tela:flex-1 tela:items-stretch empty:hidden max-[760px]:gap-3 min-[1024px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <Suspense fallback={<EsqueletoListas />}>
           <BlocoEmAndamento resumo={resumo} lista={emAndamento} />
         </Suspense>
@@ -78,7 +85,7 @@ export async function DashboardSolicitante({
       <Suspense fallback={<EsqueletoResumo />}>
         <SeusNumeros usuario={usuario} resumo={resumoPeriodo} periodo={periodo} />
       </Suspense>
-    </>
+    </div>
   );
 }
 
@@ -140,7 +147,7 @@ async function BlocoEmAndamento({
   return (
     <section
       aria-labelledby="titulo-em-andamento"
-      className="bg-hero text-hero-foreground rounded-card relative isolate flex min-w-0 flex-col gap-3 overflow-hidden p-5"
+      className="bg-hero text-hero-foreground rounded-card relative isolate flex min-w-0 flex-col gap-3 overflow-hidden p-5 tela:min-h-0"
     >
       <AneisHero />
       <div className="flex items-start justify-between gap-3">
@@ -158,7 +165,7 @@ async function BlocoEmAndamento({
       {itens.length === 0 ? (
         <p className="text-hero-muted py-6 text-center text-sm">Nada esperando decisão</p>
       ) : (
-        <ul className="flex flex-col gap-2.5">
+        <ul className="flex flex-col gap-2.5 tela:min-h-0 tela:flex-1 tela:overflow-y-auto">
           {itens.map((item, indice) => (
             <li key={item.id} className={cn(indice >= VISIVEIS_NO_CELULAR && 'max-[760px]:hidden')}>
               <LinhaEmAndamento item={item} />
@@ -214,7 +221,7 @@ async function BlocoDecididas({ resumo, lista }: { resumo: PromessaResumo; lista
   return (
     <section
       aria-labelledby="titulo-decididas"
-      className="bg-card rounded-card flex min-w-0 flex-col gap-2.5 p-5"
+      className="bg-card rounded-card flex min-w-0 flex-col gap-2.5 p-5 tela:min-h-0"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
@@ -229,7 +236,7 @@ async function BlocoDecididas({ resumo, lista }: { resumo: PromessaResumo; lista
       {itens.length === 0 ? (
         <p className="text-muted-foreground py-6 text-center text-sm">Nenhuma decisão ainda</p>
       ) : (
-        <ul className="flex flex-col">
+        <ul className="flex flex-col tela:min-h-0 tela:flex-1 tela:overflow-y-auto">
           {itens.map((item) => (
             <li key={item.id} className="border-border border-t first:border-t-0">
               <Link

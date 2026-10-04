@@ -2,6 +2,9 @@
 
 /* O tema escuro vem da classe .dark no <html>, aplicada pelo next-themes. */
 @custom-variant dark (&:where(.dark, .dark *));
+/* Desktop com altura suficiente: os dashboards do analista e do solicitante cabem na tela, sem
+   rolar a página (as listas rolam dentro dos cards). Em janelas baixas, a página volta a rolar. */
+@custom-variant tela (@media (min-width: 1024px) and (min-height: 720px));
 
 /* Identidade visual Marinho: tokens do tema claro. As fontes vêm do next/font (layout.tsx). */
 :root {

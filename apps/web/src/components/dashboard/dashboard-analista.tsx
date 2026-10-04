@@ -26,6 +26,7 @@ import {
   BarraTopo,
   BlocoStatus,
   ChipPrioridadeHero,
+  CLASSE_DASHBOARD_TELA,
   LinkCanto,
   TituloComTotal,
   URL_FILA,
@@ -61,7 +62,7 @@ export async function DashboardAnalista({
   );
 
   return (
-    <>
+    <div className={CLASSE_DASHBOARD_TELA}>
       <h1 className="sr-only">Dashboard</h1>
       <BarraTopo
         usuario={usuario}
@@ -73,7 +74,10 @@ export async function DashboardAnalista({
         }
       />
 
-      <section aria-labelledby="titulo-seu-trabalho" className="flex flex-col gap-3">
+      <section
+        aria-labelledby="titulo-seu-trabalho"
+        className="flex flex-col gap-3 tela:min-h-0 tela:flex-1"
+      >
         <h2 id="titulo-seu-trabalho" className={CLASSE_TITULO_SECAO}>
           Seu trabalho
         </h2>
@@ -97,7 +101,7 @@ export async function DashboardAnalista({
       <Suspense fallback={<EsqueletoResumo />}>
         <Indicadores resumo={resumoPeriodo} periodo={periodo} />
       </Suspense>
-    </>
+    </div>
   );
 }
 
@@ -214,7 +218,7 @@ function CardMinhasAnalises({
   return (
     <section
       aria-labelledby="titulo-minhas-analises"
-      className="bg-card rounded-card flex min-w-0 flex-col gap-3 p-5"
+      className="bg-card rounded-card flex min-w-0 flex-col gap-3 p-5 tela:min-h-0 tela:overflow-hidden"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
@@ -241,7 +245,7 @@ function CardMinhasAnalises({
       {itens.length === 0 ? (
         <p className="text-muted-foreground py-6 text-center text-sm">Nada em análise com você</p>
       ) : (
-        <ul className="flex flex-col">
+        <ul className="flex flex-col tela:-mx-1 tela:min-h-0 tela:flex-1 tela:overflow-y-auto tela:px-1">
           {itens.map((item) => (
             <LinhaMinhaAnalise key={item.id} item={item} />
           ))}
@@ -303,7 +307,7 @@ function CardFila({
   return (
     <section
       aria-labelledby="titulo-fila"
-      className="bg-hero text-hero-foreground rounded-card relative isolate flex min-w-0 flex-col gap-3.5 overflow-hidden p-5"
+      className="bg-hero text-hero-foreground rounded-card relative isolate flex min-w-0 flex-col gap-3.5 overflow-hidden p-5 tela:min-h-0"
     >
       <AneisHero />
       <div className="flex items-start justify-between gap-3">
@@ -339,7 +343,10 @@ function CardFila({
         </p>
       ) : null}
       {seguintes.length > 0 ? (
-        <ul aria-label={proxima ? 'Depois dela' : 'Na fila'} className="flex flex-col">
+        <ul
+          aria-label={proxima ? 'Depois dela' : 'Na fila'}
+          className="flex flex-col tela:min-h-0 tela:flex-1 tela:overflow-y-auto"
+        >
           {seguintes.map((item) => (
             <li
               key={item.id}
@@ -428,8 +435,8 @@ async function Indicadores({
         Indicadores · {rotuloPeriodo(periodo)}{' '}
         <span className="font-normal normal-case">· todas as áreas</span>
       </h2>
-      <div className="grid items-start gap-4 max-[760px]:gap-3 min-[1024px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-        <div className="grid grid-cols-2 gap-3 min-[761px]:grid-cols-[1.25fr_1fr_1fr]">
+      <div className="grid items-stretch gap-4 tela:h-[264px] max-[760px]:gap-3 min-[1024px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <div className="grid grid-cols-2 gap-3 min-[761px]:grid-cols-[1.25fr_1fr_1fr] tela:min-h-0 tela:grid-rows-2">
           <div className="col-span-2 grid min-[761px]:col-span-1 min-[761px]:row-span-2">
             <TileTotal resumo={resumo} rotulo="Total de solicitações" alto />
           </div>
@@ -444,7 +451,7 @@ async function Indicadores({
         </div>
         <section
           aria-labelledby="titulo-prioridade"
-          className="bg-card rounded-card flex min-w-0 flex-col gap-2 p-5"
+          className="bg-card rounded-card flex min-w-0 flex-col gap-2 p-5 tela:min-h-0"
         >
           <h3
             id="titulo-prioridade"
