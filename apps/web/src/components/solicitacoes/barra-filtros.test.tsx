@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { lerFiltros } from '@/features/solicitacoes/filtros';
@@ -214,6 +214,125 @@ describe('RF-02: barra de filtros da lista', () => {
       expect(grupoArea()).toBeNull();
       expect(screen.getByRole('group', { name: 'Status' })).toBeInTheDocument();
       expect(screen.getByRole('group', { name: 'Prioridade' })).toBeInTheDocument();
+    });
+  });
+
+  /*
+   * Celular (Fase 3.5, PR 4A): prioridade, área e ordenação vão para uma folha aberta pelo botão
+   * "Filtros", que mostra quantos filtros da folha estão ativos. Busca e chips de status ficam
+   * fora da folha, sempre à vista. No jsdom não há media query: o botão existe também no desktop
+   * (escondido por CSS) e a folha só entra no DOM quando aberta.
+   */
+  describe('RF-02: filtros do celular numa folha', () => {
+    const botaoFiltros = () => screen.getByRole('button', { name: /^Filtros/ });
+
+    // `null` = sem lista de áreas (um parâmetro padrão trocaria `undefined` pela lista)
+    async function abrirFolha(query = '', areas: Area[] | null = AREAS) {
+      const pessoa = userEvent.setup();
+      renderizar(query, areas ?? undefined);
+      await pessoa.click(botaoFiltros());
+      const folha = await screen.findByRole('dialog', { name: 'Filtros' });
+      return { pessoa, folha };
+    }
+
+    it('RF-02: sem filtro da folha ativo, o botão "Filtros" não mostra número', () => {
+      renderizar('', AREAS);
+
+      expect(botaoFiltros()).not.toHaveAccessibleName(/\d/);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['uma prioridade', 'prioridade=ALTA', 1],
+      ['prioridade e área', `prioridade=ALTA&area=${AREAS[1]!.id}`, 2],
+      [
+        'duas prioridades e duas áreas',
+        `prioridade=ALTA&prioridade=MEDIA&area=${AREAS[1]!.id}&area=${AREAS[3]!.id}`,
+        4,
+      ],
+      ['ordenação diferente do padrão', 'ordenarPor=prioridade', 1],
+    ])('RF-02: com %s (%s), o botão "Filtros" mostra %i', (_caso, query, total) => {
+      renderizar(query, AREAS);
+
+      expect(botaoFiltros()).toHaveAccessibleName(new RegExp(`\\b${total}\\b`));
+      expect(botaoFiltros()).toHaveTextContent(String(total));
+    });
+
+    it('RF-02: busca e status não contam no botão "Filtros" (ficam fora da folha)', () => {
+      renderizar('q=folha&status=ABERTA', AREAS);
+
+      expect(botaoFiltros()).not.toHaveAccessibleName(/\d/);
+    });
+
+    it('RF-02: a folha traz prioridade, área e ordenação; busca e status ficam fora dela', async () => {
+      const { folha } = await abrirFolha();
+
+      expect(within(folha).getByRole('group', { name: 'Prioridade' })).toBeInTheDocument();
+      expect(within(folha).getByRole('group', { name: 'Área' })).toBeInTheDocument();
+      expect(within(folha).getByLabelText(/ordenar/i)).toBeInTheDocument();
+      expect(within(folha).queryByRole('searchbox')).not.toBeInTheDocument();
+      expect(within(folha).queryByRole('group', { name: 'Status' })).not.toBeInTheDocument();
+      // A busca e os chips de status continuam na barra, fora da folha. Com a folha aberta, o
+      // modal esconde o fundo do leitor de tela (aria-hidden), por isso a busca usa hidden: true
+      expect(screen.getByRole('searchbox', { name: /buscar/i, hidden: true })).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: 'Status', hidden: true })).toBeInTheDocument();
+    });
+
+    it('RF-02: sem a lista de áreas, a folha não mostra o grupo "Área"', async () => {
+      const { folha } = await abrirFolha('', null);
+
+      expect(within(folha).getByRole('group', { name: 'Prioridade' })).toBeInTheDocument();
+      expect(within(folha).queryByRole('group', { name: 'Área' })).not.toBeInTheDocument();
+    });
+
+    it('RF-02: a folha mostra os filtros já ativos marcados', async () => {
+      const { folha } = await abrirFolha(`prioridade=ALTA&area=${FINANCEIRO.id}`);
+
+      const prioridade = within(folha).getByRole('group', { name: 'Prioridade' });
+      expect(within(prioridade).getByRole('button', { name: /^Alta/ })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      const area = within(folha).getByRole('group', { name: 'Área' });
+      expect(within(area).getByRole('button', { name: 'Financeiro' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+    });
+
+    it('RF-02: chip de prioridade na folha grava ?prioridade= mantendo busca e status, e volta para a página 1', async () => {
+      const { pessoa, folha } = await abrirFolha('q=folha&status=ABERTA&page=2');
+
+      const prioridade = within(folha).getByRole('group', { name: 'Prioridade' });
+      await pessoa.click(within(prioridade).getByRole('button', { name: /^Alta/ }));
+
+      expect(ultimaUrl()).toEqual({ q: 'folha', status: 'ABERTA', prioridade: 'ALTA' });
+    });
+
+    it('RF-02: chip de área na folha grava ?area=', async () => {
+      const { pessoa, folha } = await abrirFolha();
+
+      const area = within(folha).getByRole('group', { name: 'Área' });
+      await pessoa.click(within(area).getByRole('button', { name: 'Tecnologia' }));
+
+      expect(ultimaUrl()).toEqual({ area: TECNOLOGIA.id });
+    });
+
+    it('RF-02: ordenação na folha grava ordenarPor na URL', async () => {
+      const { pessoa, folha } = await abrirFolha();
+
+      await pessoa.selectOptions(within(folha).getByLabelText(/ordenar/i), 'Prioridade');
+
+      expect(ultimaUrl()).toEqual({ ordenarPor: 'prioridade' });
+    });
+
+    it('RF-02: Esc fecha a folha e o foco volta para o botão "Filtros"', async () => {
+      const { pessoa } = await abrirFolha();
+
+      await pessoa.keyboard('{Escape}');
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(botaoFiltros()).toHaveFocus();
     });
   });
 });
