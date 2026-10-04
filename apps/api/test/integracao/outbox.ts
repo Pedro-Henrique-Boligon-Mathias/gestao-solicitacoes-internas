@@ -19,6 +19,8 @@ export interface LinhaOutbox {
   tentativas: number;
   proxima_tentativa_em: Date;
   ultimo_erro: string | null;
+  /** RN-14 (4C): gravada pelo worker a cada tentativa, com sucesso ou falha. */
+  ultima_tentativa_em: Date | null;
   correlation_id: string | null;
   criado_em: Date;
   enviado_em: Date | null;

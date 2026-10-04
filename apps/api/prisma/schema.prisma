@@ -166,6 +166,8 @@ model SolicitacaoHistorico {
 
   @@index([solicitacaoId, criadoEm])
   @@index([autorId])
+  // Painel de gestão: eventos de um tipo dentro de um período
+  @@index([tipo, criadoEm])
   @@map("solicitacao_historico")
 }
 
@@ -184,6 +186,8 @@ model OutboxEvento {
   // clock_timestamp(): a ordem de envio por solicitação segue a ordem real das gravações
   criadoEm           DateTime     @default(dbgenerated("clock_timestamp()")) @map("criado_em") @db.Timestamptz(6)
   enviadoEm          DateTime?    @map("enviado_em") @db.Timestamptz(6)
+  // Gravada pelo worker a cada tentativa, junto com o desfecho
+  ultimaTentativaEm  DateTime?    @map("ultima_tentativa_em") @db.Timestamptz(6)
 
   solicitacao Solicitacao @relation(fields: [agregadoId], references: [id], onDelete: Restrict)
 

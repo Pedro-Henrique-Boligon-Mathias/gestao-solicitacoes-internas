@@ -63,17 +63,21 @@ export class RepositorioOutboxPrisma extends RepositorioOutbox {
           correlationId: linha.correlation_id,
         });
 
+        // ultima_tentativa_em vai na mesma atualização do desfecho, com a hora real (fim da
+        // tentativa), como enviado_em; now() seria o início da transação, antes da chamada HTTP.
         switch (desfecho.status) {
           case 'ENVIADO':
             await tx.$executeRaw`
               UPDATE outbox_eventos
-                 SET status = 'ENVIADO', enviado_em = clock_timestamp(), tentativas = tentativas + 1
+                 SET status = 'ENVIADO', enviado_em = clock_timestamp(), tentativas = tentativas + 1,
+                     ultima_tentativa_em = clock_timestamp()
                WHERE id = ${linha.id}::uuid`;
             break;
           case 'PENDENTE':
             await tx.$executeRaw`
               UPDATE outbox_eventos
                  SET tentativas = tentativas + 1, ultimo_erro = ${desfecho.erro},
+                     ultima_tentativa_em = clock_timestamp(),
                      proxima_tentativa_em = clock_timestamp()
                        + ${desfecho.atrasoMs}::int * interval '1 millisecond'
                WHERE id = ${linha.id}::uuid`;
@@ -81,7 +85,8 @@ export class RepositorioOutboxPrisma extends RepositorioOutbox {
           case 'FALHOU':
             await tx.$executeRaw`
               UPDATE outbox_eventos
-                 SET status = 'FALHOU', tentativas = tentativas + 1, ultimo_erro = ${desfecho.erro}
+                 SET status = 'FALHOU', tentativas = tentativas + 1, ultimo_erro = ${desfecho.erro},
+                     ultima_tentativa_em = clock_timestamp()
                WHERE id = ${linha.id}::uuid`;
             break;
         }

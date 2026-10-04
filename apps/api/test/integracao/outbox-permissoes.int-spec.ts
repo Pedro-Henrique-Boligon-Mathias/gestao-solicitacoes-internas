@@ -165,6 +165,18 @@ describe('ADR-005 / ADR-010: permissões e RLS de outbox_eventos', () => {
       });
     });
 
+    it('RN-14: coluna ultima_tentativa_em (timestamptz, aceita nulo, sem padrão)', async () => {
+      const resultado = await owner.query(
+        `SELECT data_type AS tipo, is_nullable AS nulo, column_default AS padrao
+           FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'outbox_eventos'
+            AND column_name = 'ultima_tentativa_em'`,
+      );
+      expect(resultado.rows).toEqual([
+        { tipo: 'timestamp with time zone', nulo: 'YES', padrao: null },
+      ]);
+    });
+
     it('ADR-010: agregado_id precisa existir em solicitacoes (FK)', async () => {
       await expect(inserirEvento(owner, randomUUID())).rejects.toMatchObject({ code: VIOLACAO_FK });
     });
@@ -229,7 +241,8 @@ describe('ADR-005 / ADR-010: permissões e RLS de outbox_eventos', () => {
   });
 
   describe('app_runtime: colunas', () => {
-    it.each(['payload', 'ultimo_erro', 'correlation_id', '*'])(
+    // ultimo_erro saiu desta lista no PR 4C: agora o app_runtime lê (painel do admin)
+    it.each(['payload', 'correlation_id', '*'])(
       'ADR-005: app_runtime não lê %s',
       async (coluna) => {
         await expect(
@@ -252,20 +265,50 @@ describe('ADR-005 / ADR-010: permissões e RLS de outbox_eventos', () => {
       expect(linhas).toHaveLength(1);
     });
 
-    it.each(['payload', 'ultimo_erro', 'correlation_id', 'enviado_em', 'tipo'])(
-      'ADR-005: app_runtime (ADMIN) não atualiza %s',
-      async (coluna) => {
-        const valor =
-          coluna === 'payload' ? "'{}'::jsonb" : coluna === 'enviado_em' ? 'now()' : "'x'";
-        await expect(
-          comoRuntime(admin(), () =>
-            runtime.query(`UPDATE outbox_eventos SET ${coluna} = ${valor} WHERE id = $1`, [
-              eventoDaAna,
-            ]),
-          ),
-        ).rejects.toMatchObject({ code: SQLSTATE.semPermissao });
-      },
-    );
+    it('RN-14: app_runtime (ADMIN) lê ultimo_erro e ultima_tentativa_em', async () => {
+      const quando = new Date('2026-10-04T12:00:00.000Z');
+      await owner.query(
+        `UPDATE outbox_eventos SET ultimo_erro = 'HTTP 503', ultima_tentativa_em = $2
+          WHERE id = $1`,
+        [eventoDaAna, quando],
+      );
+      const linhas = await comoRuntime(
+        admin(),
+        async () =>
+          (
+            await runtime.query<{ ultimo_erro: string; ultima_tentativa_em: Date }>(
+              `SELECT ${COLUNAS_DE_STATUS}, ultimo_erro, ultima_tentativa_em
+                 FROM outbox_eventos WHERE id = $1`,
+              [eventoDaAna],
+            )
+          ).rows,
+      );
+      expect(linhas).toHaveLength(1);
+      expect(linhas[0]).toMatchObject({ ultimo_erro: 'HTTP 503', ultima_tentativa_em: quando });
+    });
+
+    it.each([
+      'payload',
+      'ultimo_erro',
+      'ultima_tentativa_em',
+      'correlation_id',
+      'enviado_em',
+      'tipo',
+    ])('ADR-005: app_runtime (ADMIN) não atualiza %s', async (coluna) => {
+      const valor =
+        coluna === 'payload'
+          ? "'{}'::jsonb"
+          : ['enviado_em', 'ultima_tentativa_em'].includes(coluna)
+            ? 'now()'
+            : "'x'";
+      await expect(
+        comoRuntime(admin(), () =>
+          runtime.query(`UPDATE outbox_eventos SET ${coluna} = ${valor} WHERE id = $1`, [
+            eventoDaAna,
+          ]),
+        ),
+      ).rejects.toMatchObject({ code: SQLSTATE.semPermissao });
+    });
 
     it('ADR-005: app_runtime não apaga da outbox', async () => {
       await expect(
@@ -299,6 +342,26 @@ describe('ADR-005 / ADR-010: permissões e RLS de outbox_eventos', () => {
       const ambos = [eventoDaAna, eventoDoBruno].sort();
       expect(await idsVisiveis(analista())).toEqual(ambos);
       expect(await idsVisiveis(admin())).toEqual(ambos);
+    });
+
+    /** Ids visíveis lendo também as colunas liberadas no PR 4C. */
+    async function idsComErro(contexto: Contexto | null): Promise<string[]> {
+      return comoRuntime(contexto, async () => {
+        const resultado = await runtime.query<{ id: string }>(
+          `SELECT id, ultimo_erro, ultima_tentativa_em FROM outbox_eventos WHERE id = ANY($1)`,
+          [[eventoDaAna, eventoDoBruno]],
+        );
+        return resultado.rows.map((linha) => linha.id).sort();
+      });
+    }
+
+    it('RN-14: app_runtime lê ultimo_erro e ultima_tentativa_em com a RLS valendo: sem contexto → nenhuma linha', async () => {
+      expect(await idsComErro(null)).toEqual([]);
+    });
+
+    it('RN-14: app_runtime lê ultimo_erro e ultima_tentativa_em com a RLS valendo: Admin vê todas, Ana só a dela', async () => {
+      expect(await idsComErro(admin())).toEqual([eventoDaAna, eventoDoBruno].sort());
+      expect(await idsComErro(ana())).toEqual([eventoDaAna]);
     });
 
     it('ADR-005: solicitante não insere na outbox (nem para a própria solicitação)', async () => {
