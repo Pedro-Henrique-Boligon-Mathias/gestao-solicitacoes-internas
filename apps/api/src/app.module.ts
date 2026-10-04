@@ -8,6 +8,7 @@ import { LoggingModule } from './common/logging/logging.module';
 import { validarEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { AreasModule } from './modules/areas/areas.module';
+import { AuditoriaModule } from './modules/auditoria/auditoria.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { HealthModule } from './modules/health/health.module';
@@ -30,6 +31,7 @@ import { SolicitacoesModule } from './modules/solicitacoes/solicitacoes.module';
     SolicitacoesModule,
     DashboardModule,
     AreasModule,
+    AuditoriaModule,
   ],
   providers: [
     // DTOs zod validam body, params e query, e as respostas marcadas com @ZodSerializerDto

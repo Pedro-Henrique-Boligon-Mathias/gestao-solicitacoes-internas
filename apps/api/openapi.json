@@ -79,6 +79,65 @@
         ],
         "type": "object"
       },
+      "DivergenciaHistorico": {
+        "properties": {
+          "criadoEm": {
+            "example": "2026-10-03T10:12:00.000Z",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          },
+          "eventoId": {
+            "example": "c7e1a9d3-5b2f-4c86-9e0a-4d6f8b2c1e57",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "type": "string"
+          },
+          "motivo": {
+            "$ref": "#/components/schemas/MotivoDivergencia"
+          },
+          "solicitacao": {
+            "properties": {
+              "codigo": {
+                "example": "SOL-000042",
+                "type": "string"
+              },
+              "id": {
+                "example": "0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "codigo"
+            ],
+            "type": "object"
+          },
+          "tipo": {
+            "enum": [
+              "CRIADA",
+              "EDITADA",
+              "ANALISE_INICIADA",
+              "APROVADA",
+              "REJEITADA",
+              "REABERTA",
+              "EXCLUIDA"
+            ],
+            "example": "APROVADA",
+            "type": "string"
+          }
+        },
+        "required": [
+          "solicitacao",
+          "eventoId",
+          "tipo",
+          "criadoEm",
+          "motivo"
+        ],
+        "type": "object"
+      },
       "EditarSolicitacaoDto": {
         "additionalProperties": false,
         "description": "Só título, descrição e prioridade; o status muda pelos comandos",
@@ -741,6 +800,56 @@
         "example": "dia",
         "type": "string"
       },
+      "IntegridadeDto": {
+        "properties": {
+          "divergencias": {
+            "description": "Até 20, da mais antiga para a mais recente",
+            "items": {
+              "$ref": "#/components/schemas/DivergenciaHistorico"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "eventosVerificados": {
+            "example": 412,
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "integro": {
+            "description": "true quando nenhuma divergência foi encontrada",
+            "type": "boolean"
+          },
+          "solicitacoesVerificadas": {
+            "description": "Inclui solicitações excluídas logicamente",
+            "example": 40,
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "totalDivergencias": {
+            "example": 1,
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "verificadoEm": {
+            "example": "2026-10-04T10:15:00.000Z",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "integro",
+          "eventosVerificados",
+          "solicitacoesVerificadas",
+          "totalDivergencias",
+          "divergencias",
+          "verificadoEm"
+        ],
+        "type": "object"
+      },
       "LoginDto": {
         "properties": {
           "email": {
@@ -761,6 +870,15 @@
           "senha"
         ],
         "type": "object"
+      },
+      "MotivoDivergencia": {
+        "description": "CONTEUDO_ALTERADO: o conteúdo do evento não confere com o hash gravado; CORRENTE_QUEBRADA: o evento não aponta para o anterior (evento apagado ou inserido no meio)",
+        "enum": [
+          "CONTEUDO_ALTERADO",
+          "CORRENTE_QUEBRADA"
+        ],
+        "example": "CONTEUDO_ALTERADO",
+        "type": "string"
       },
       "PaginaSolicitacoesDto": {
         "properties": {
@@ -1897,6 +2015,53 @@
         "summary": "Áreas ativas, em ordem de nome (pública)",
         "tags": [
           "áreas"
+        ]
+      }
+    },
+    "/api/v1/auditoria/integridade": {
+      "get": {
+        "operationId": "integridadeHistorico",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegridadeDto"
+                }
+              }
+            },
+            "description": "Resultado da verificação"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO)"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Não é administrador (ACESSO_NEGADO)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recalcula a corrente de hash do histórico de todas as solicitações e aponta as divergências",
+        "tags": [
+          "auditoria"
         ]
       }
     },
