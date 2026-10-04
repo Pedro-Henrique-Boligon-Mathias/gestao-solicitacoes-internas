@@ -149,6 +149,8 @@ describe('GET /solicitacoes: busca, filtros, ordenação e paginação', () => {
           analista: { id: carla.id, nome: 'Carla Mendes' },
           dataSolicitacao: expect.stringMatching(ISO_UTC),
           atualizadoEm: expect.stringMatching(ISO_UTC),
+          analiseIniciadaEm: expect.stringMatching(ISO_UTC),
+          decisao: null,
         },
       ]);
     });

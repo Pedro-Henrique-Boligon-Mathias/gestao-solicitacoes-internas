@@ -247,6 +247,14 @@
           "data": {
             "items": {
               "properties": {
+                "analiseIniciadaEm": {
+                  "description": "Início da análise atual: o último ANALISE_INICIADA depois da última reabertura. Só em EM_ANALISE; null nos demais status",
+                  "example": null,
+                  "format": "date-time",
+                  "nullable": true,
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "type": "string"
+                },
                 "analista": {
                   "description": "Analista responsável; null até a análise começar",
                   "example": {
@@ -309,6 +317,60 @@
                   "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
                   "type": "string"
                 },
+                "decisao": {
+                  "description": "Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura",
+                  "example": {
+                    "comentario": "Acesso liberado conforme a política de perfis de leitura.",
+                    "decididoEm": "2026-10-03T10:12:00.000Z",
+                    "decididoPor": {
+                      "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+                      "nome": "Carla Mendes"
+                    },
+                    "resultado": "APROVADA"
+                  },
+                  "nullable": true,
+                  "properties": {
+                    "comentario": {
+                      "type": "string"
+                    },
+                    "decididoEm": {
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "type": "string"
+                    },
+                    "decididoPor": {
+                      "properties": {
+                        "id": {
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "type": "string"
+                        },
+                        "nome": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "nome"
+                      ],
+                      "type": "object"
+                    },
+                    "resultado": {
+                      "enum": [
+                        "APROVADA",
+                        "REJEITADA"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "resultado",
+                    "comentario",
+                    "decididoEm",
+                    "decididoPor"
+                  ],
+                  "type": "object"
+                },
                 "id": {
                   "example": "0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10",
                   "format": "uuid",
@@ -370,7 +432,9 @@
                 "area",
                 "analista",
                 "dataSolicitacao",
-                "atualizadoEm"
+                "atualizadoEm",
+                "analiseIniciadaEm",
+                "decisao"
               ],
               "type": "object"
             },
@@ -1574,7 +1638,7 @@
             }
           },
           {
-            "description": "prioridade: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro (ignora direcao)",
+            "description": "prioridade: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro (ignora direcao). decididoEm: a decisão mais recente primeiro e as sem decisão no fim (ignora direcao)",
             "in": "query",
             "name": "ordenarPor",
             "required": false,
@@ -1582,7 +1646,8 @@
               "default": "dataSolicitacao",
               "enum": [
                 "dataSolicitacao",
-                "prioridade"
+                "prioridade",
+                "decididoEm"
               ],
               "type": "string"
             }

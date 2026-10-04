@@ -388,6 +388,12 @@ export interface components {
         PaginaSolicitacoesDto: {
             data: {
                 /**
+                 * Format: date-time
+                 * @description Início da análise atual: o último ANALISE_INICIADA depois da última reabertura. Só em EM_ANALISE; null nos demais status
+                 * @example null
+                 */
+                analiseIniciadaEm: string | null;
+                /**
                  * @description Analista responsável; null até a análise começar
                  * @example {
                  *       "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
@@ -426,6 +432,30 @@ export interface components {
                  * @example 2026-10-02T13:45:00.000Z
                  */
                 dataSolicitacao: string;
+                /**
+                 * @description Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura
+                 * @example {
+                 *       "comentario": "Acesso liberado conforme a política de perfis de leitura.",
+                 *       "decididoEm": "2026-10-03T10:12:00.000Z",
+                 *       "decididoPor": {
+                 *         "id": "8d2f4a6c-1e3b-4c75-9a0d-2b4e6f8a1c39",
+                 *         "nome": "Carla Mendes"
+                 *       },
+                 *       "resultado": "APROVADA"
+                 *     }
+                 */
+                decisao: {
+                    comentario: string;
+                    /** Format: date-time */
+                    decididoEm: string;
+                    decididoPor: {
+                        /** Format: uuid */
+                        id: string;
+                        nome: string;
+                    };
+                    /** @enum {string} */
+                    resultado: "APROVADA" | "REJEITADA";
+                } | null;
                 /**
                  * Format: uuid
                  * @example 0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10
@@ -1119,8 +1149,8 @@ export interface operations {
                 q?: string;
                 status?: ("ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA") | ("ABERTA" | "EM_ANALISE" | "APROVADA" | "REJEITADA")[];
                 prioridade?: ("BAIXA" | "MEDIA" | "ALTA") | ("BAIXA" | "MEDIA" | "ALTA")[];
-                /** @description prioridade: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro (ignora direcao) */
-                ordenarPor?: "dataSolicitacao" | "prioridade";
+                /** @description prioridade: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro (ignora direcao). decididoEm: a decisão mais recente primeiro e as sem decisão no fim (ignora direcao) */
+                ordenarPor?: "dataSolicitacao" | "prioridade" | "decididoEm";
                 direcao?: "asc" | "desc";
                 /** @description eu: só as que têm o usuário atual como analista responsável */
                 analista?: "eu";

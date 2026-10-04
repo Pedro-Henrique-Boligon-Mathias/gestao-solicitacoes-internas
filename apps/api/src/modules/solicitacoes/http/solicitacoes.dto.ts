@@ -98,10 +98,13 @@ export const consultaListaSchema = z.object({
   status: variosValores(STATUS, 'Status'),
   prioridade: variosValores(PRIORIDADES, 'Prioridade'),
   ordenarPor: z
-    .enum(['dataSolicitacao', 'prioridade'], 'Ordene por dataSolicitacao ou prioridade.')
+    .enum(
+      ['dataSolicitacao', 'prioridade', 'decididoEm'],
+      'Ordene por dataSolicitacao, prioridade ou decididoEm.',
+    )
     .default('dataSolicitacao')
     .describe(
-      'prioridade: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro (ignora direcao)',
+      'prioridade: ALTA → MEDIA → BAIXA e, dentro, a mais antiga primeiro (ignora direcao). decididoEm: a decisão mais recente primeiro e as sem decisão no fim (ignora direcao)',
     ),
   direcao: z.enum(['asc', 'desc'], 'A direção deve ser asc ou desc.').default('desc'),
   analista: z
@@ -138,7 +141,26 @@ export class ConsultaListaDto extends createZodDto(consultaListaSchema) {}
 const pessoa = z.object({ id: z.uuid(), nome: z.string() });
 const dataHora = z.iso.datetime();
 
-export const itemListaSchema = z.object({
+/** Decisão vigente: a mesma no item da lista e no detalhe. */
+const decisaoVigenteSchema = z
+  .object({
+    resultado: z.enum(RESULTADOS),
+    comentario: z.string(),
+    decididoEm: dataHora,
+    decididoPor: pessoa,
+  })
+  .nullable()
+  .describe('Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura')
+  .meta({
+    example: {
+      resultado: 'APROVADA',
+      comentario: EXEMPLO.comentario,
+      decididoEm: EXEMPLO.decididoEm,
+      decididoPor: EXEMPLO.carla,
+    },
+  });
+
+const resumoSolicitacaoSchema = z.object({
   id: z.uuid().meta({ example: EXEMPLO.solicitacaoId }),
   codigo: z
     .string()
@@ -155,6 +177,16 @@ export const itemListaSchema = z.object({
     .meta({ example: EXEMPLO.carla }),
   dataSolicitacao: dataHora.meta({ example: EXEMPLO.dataSolicitacao }),
   atualizadoEm: dataHora.meta({ example: EXEMPLO.decididoEm }),
+});
+
+export const itemListaSchema = resumoSolicitacaoSchema.extend({
+  analiseIniciadaEm: dataHora
+    .nullable()
+    .describe(
+      'Início da análise atual: o último ANALISE_INICIADA depois da última reabertura. Só em EM_ANALISE; null nos demais status',
+    )
+    .meta({ example: null }),
+  decisao: decisaoVigenteSchema,
 });
 
 const EXEMPLO_EVENTOS_INTEGRACAO = [
@@ -218,25 +250,9 @@ export const integracaoSchema = z
   })
   .describe('Integração com o sistema externo (ADR-010); null se a solicitação não tem evento');
 
-export const solicitacaoSchema = itemListaSchema.extend({
+export const solicitacaoSchema = resumoSolicitacaoSchema.extend({
   descricao: z.string().meta({ example: EXEMPLO.descricao }),
-  decisao: z
-    .object({
-      resultado: z.enum(RESULTADOS),
-      comentario: z.string(),
-      decididoEm: dataHora,
-      decididoPor: pessoa,
-    })
-    .nullable()
-    .describe('Decisão vigente; null enquanto não houver decisão ou depois de uma reabertura')
-    .meta({
-      example: {
-        resultado: 'APROVADA',
-        comentario: EXEMPLO.comentario,
-        decididoEm: EXEMPLO.decididoEm,
-        decididoPor: EXEMPLO.carla,
-      },
-    }),
+  decisao: decisaoVigenteSchema,
   versao: z.int().describe('Envie no PATCH para o controle de concorrência').meta({ example: 3 }),
   acoesPermitidas: z
     .array(z.enum(ACOES))
