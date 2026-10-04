@@ -90,6 +90,18 @@ describe('RF-04: layout da área logada', () => {
     expect(screen.queryByText(/na fila/)).not.toBeInTheDocument();
   });
 
+  it('RF-04: o contador do menu lê o resumo sem período (o ?periodo= do dashboard não o afeta)', async () => {
+    logado(CARLA);
+    consultas.obterResumo.mockReturnValue(new Promise(() => undefined));
+
+    await renderizarLayout();
+
+    expect(consultas.obterResumo).toHaveBeenCalled();
+    for (const argumentos of consultas.obterResumo.mock.calls) {
+      expect(argumentos.filter((a: unknown) => a !== undefined)).toEqual([]);
+    }
+  });
+
   it('RF-04: quando o resumo chega, o menu mostra o tamanho da fila', async () => {
     logado(CARLA);
     consultas.obterResumo.mockResolvedValue({

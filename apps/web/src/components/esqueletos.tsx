@@ -125,3 +125,29 @@ export function EsqueletoDetalhe() {
     </div>
   );
 }
+
+/** Painel de gestão do admin: Entrada e saída, Por área e Por analista, Integrações com falha. */
+export function EsqueletoPainelGestao({ className }: { className?: string }) {
+  return (
+    <div
+      role="status"
+      aria-label="Carregando o painel de gestão"
+      className={cn('flex flex-col gap-4 max-[760px]:gap-3', className)}
+    >
+      <div className="bg-card rounded-card flex flex-col gap-4 p-5">
+        <Skeleton className="h-5 w-40" />
+        <div className="grid grid-cols-3 gap-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="rounded-inner h-24" />
+          ))}
+        </div>
+        <Skeleton className="rounded-inner h-56 w-full" />
+      </div>
+      <div className="flex flex-wrap gap-4 max-[760px]:gap-3">
+        <Skeleton className="rounded-card h-64 min-w-0 flex-[7_1_420px]" />
+        <Skeleton className="rounded-card h-64 min-w-0 flex-[5_1_320px]" />
+      </div>
+      <Skeleton className="rounded-card h-40 w-full" />
+    </div>
+  );
+}

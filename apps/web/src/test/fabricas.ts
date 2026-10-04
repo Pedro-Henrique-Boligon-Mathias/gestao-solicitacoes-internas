@@ -69,7 +69,7 @@ export const CARLA: Usuario = {
 
 export const DIEGO: Usuario = {
   id: '6a1f0c2e-0000-4000-8000-000000000003',
-  nome: 'Diego Lima',
+  nome: 'Diego Alves',
   email: 'diego.lima@demo.test',
   cargo: 'ADMIN',
   area: { id: 'a0000000-0000-4000-8000-000000000002', nome: 'Tecnologia' },
@@ -206,6 +206,8 @@ export function resumo(parcial: Partial<Resumo> = {}): Resumo {
     porPrioridade: { BAIXA: 10, MEDIA: 18, ALTA: 12 },
     filaAlta: 3,
     aberturaMaisAntiga: '2026-09-28T12:00:00.000Z',
+    // Sem ?periodo= a API devolve tudo: início nulo e fim no instante da consulta
+    periodo: { valor: 'tudo', inicio: null, fim: '2026-10-03T12:00:00.000Z' },
     geradoEm: '2026-10-03T12:00:00.000Z',
     ...parcial,
   };
@@ -246,4 +248,199 @@ export function problema(
     requestId: 'req-123',
     ...extra,
   };
+}
+
+// ---- Painel de gestão do admin (GET /dashboard/gestao, Fase 3.5, PR 4C) ----
+
+export type Gestao = Schemas['GestaoDto'];
+export type PeriodoGestao = Gestao['periodo'];
+export type PeriodoValor = PeriodoGestao['valor'];
+export type Granularidade = PeriodoGestao['granularidade'];
+export type EntradaSaida = Gestao['entradaSaida'];
+export type BaldeSerie = EntradaSaida['serie'][number];
+export type AreaGestao = Gestao['porArea'][number];
+export type AnalistaGestao = Gestao['porAnalista'][number];
+/** O contrato gera `tipo: string`; nos testes ele fica restrito aos dois eventos da outbox. */
+export type IntegracaoComFalha = Omit<Gestao['integracoesComFalha'][number], 'tipo'> & {
+  tipo: TipoEventoIntegracao;
+};
+type Contagem<K extends string> = Record<K, number>;
+
+/** Áreas do painel: as quatro com solicitações e as duas sem nenhuma (Jurídico e Operações). */
+export const AREA_JURIDICO: Area = { id: 'a0000000-0000-4000-8000-000000000005', nome: 'Jurídico' };
+export const AREA_OPERACOES: Area = {
+  id: 'a0000000-0000-4000-8000-000000000006',
+  nome: 'Operações',
+};
+const areaPorNome = (nome: string): Area => AREAS.find((a) => a.nome === nome)!;
+
+export function areaGestao(area: Area, porStatus: Partial<Contagem<Status>> = {}): AreaGestao {
+  const status = { ABERTA: 0, EM_ANALISE: 0, APROVADA: 0, REJEITADA: 0, ...porStatus };
+  const total = status.ABERTA + status.EM_ANALISE + status.APROVADA + status.REJEITADA;
+  return { area: { id: area.id, nome: area.nome }, total, porStatus: status };
+}
+
+export function analistaGestao(parcial: Partial<AnalistaGestao> = {}): AnalistaGestao {
+  const base = {
+    analista: { id: CARLA.id, nome: CARLA.nome },
+    emAnaliseAgora: 4,
+    decididas: 11,
+    aprovadas: 8,
+    ...parcial,
+  };
+  const taxa = base.decididas > 0 ? base.aprovadas / base.decididas : null;
+  return { taxaAprovacao: taxa, ...base };
+}
+
+/** N analistas extras (para "Ver todos"), com carga decrescente depois dos três do seed. */
+export function analistasExtras(quantidade: number): AnalistaGestao[] {
+  return Array.from({ length: quantidade }, (_, i) =>
+    analistaGestao({
+      analista: {
+        id: `6a1f0c2e-0000-4000-8000-0000000001${String(i).padStart(2, '0')}`,
+        nome: `Analista Extra ${String(i + 1).padStart(2, '0')}`,
+      },
+      emAnaliseAgora: 0,
+      decididas: 1,
+      aprovadas: 1,
+    }),
+  );
+}
+
+export function integracaoComFalha(parcial: Partial<IntegracaoComFalha> = {}): IntegracaoComFalha {
+  return {
+    solicitacao: {
+      id: 'c0000000-0000-4000-8000-000000000024',
+      codigo: 'SOL-000024',
+      titulo: 'Liberação de acesso ao internet banking da empresa',
+      solicitante: pessoa(ANA),
+      area: areaPorNome('Financeiro'),
+    },
+    tipo: 'SolicitacaoAprovada',
+    tentativas: 5,
+    maxTentativas: 5,
+    ultimoErro: 'Sistema externo respondeu 503',
+    ultimaTentativaEm: '2026-10-04T11:15:00.000Z', // 04/10 08:15 em São Paulo
+    ...parcial,
+  };
+}
+
+/** Um balde por dia dos últimos 7 dias (27/09 a 04/10), à meia-noite de São Paulo. */
+const SERIE_7D: BaldeSerie[] = [
+  [1, 1],
+  [2, 4],
+  [1, 3],
+  [2, 2],
+  [3, 0],
+  [2, 0],
+  [1, 0],
+  [0, 0],
+].map(([entraram, sairam], i) => ({
+  inicio: new Date(Date.UTC(2026, 8, 27 + i, 3)).toISOString(),
+  entraram: entraram!,
+  sairam: sairam!,
+}));
+
+/** Entrada e saída do Diego em "Últimos 7 dias" (critério de aceite do 4C). */
+export function entradaSaida(parcial: Partial<EntradaSaida> = {}): EntradaSaida {
+  return {
+    entraram: 12,
+    sairam: 10,
+    aprovadas: 7,
+    rejeitadas: 3,
+    saldo: 2,
+    anterior: { entraram: 9, sairam: 9, tempoMedioDecisaoDias: 12 },
+    tempoMedioDecisaoDias: 10,
+    maisAntigaNaFila: {
+      id: 'c0000000-0000-4000-8000-000000000009',
+      codigo: 'SOL-000009',
+      area: areaPorNome('Recursos Humanos'),
+      desde: '2026-09-04T12:00:00.000Z', // 30 dias antes de 04/10
+    },
+    prioridadeEntraram: { BAIXA: 2, MEDIA: 4, ALTA: 6 },
+    pendentesPorPrioridade: { BAIXA: 4, MEDIA: 7, ALTA: 6 },
+    serie: SERIE_7D,
+    ...parcial,
+  };
+}
+
+/** Analistas do seed: Carla 4 · 11 · 73%, Rafael 3 · 9 · 56%, Diego 0 · 6 · 50%. */
+export const RAFAEL_REF = { id: '6a1f0c2e-0000-4000-8000-000000000004', nome: 'Rafael Costa' };
+export const ANALISTAS_SEED: AnalistaGestao[] = [
+  analistaGestao(),
+  analistaGestao({ analista: RAFAEL_REF, emAnaliseAgora: 3, decididas: 9, aprovadas: 5 }),
+  analistaGestao({ analista: pessoa(DIEGO), emAnaliseAgora: 0, decididas: 6, aprovadas: 3 }),
+];
+
+/** Áreas do seed em Tudo: quatro com solicitações e Jurídico e Operações zeradas. */
+export const AREAS_SEED: AreaGestao[] = [
+  areaGestao(areaPorNome('Financeiro'), { ABERTA: 2, EM_ANALISE: 2, APROVADA: 5, REJEITADA: 2 }),
+  areaGestao(areaPorNome('Comercial'), { ABERTA: 3, EM_ANALISE: 2, APROVADA: 4, REJEITADA: 1 }),
+  areaGestao(areaPorNome('Recursos Humanos'), {
+    ABERTA: 3,
+    EM_ANALISE: 1,
+    APROVADA: 4,
+    REJEITADA: 2,
+  }),
+  areaGestao(areaPorNome('Tecnologia'), { ABERTA: 2, EM_ANALISE: 2, APROVADA: 2, REJEITADA: 3 }),
+  areaGestao(AREA_JURIDICO),
+  areaGestao(AREA_OPERACOES),
+];
+
+/** Segunda integração com falha do mock (Comercial, tempo esgotado). */
+export const FALHA_CRM = integracaoComFalha({
+  solicitacao: {
+    id: 'c0000000-0000-4000-8000-000000000020',
+    codigo: 'SOL-000020',
+    titulo: 'Acesso ao CRM para o novo representante',
+    solicitante: { id: '6a1f0c2e-0000-4000-8000-000000000007', nome: 'Camila Rocha' },
+    area: areaPorNome('Comercial'),
+  },
+  ultimoErro: 'Tempo de resposta esgotado (10s)',
+  ultimaTentativaEm: '2026-10-04T01:40:00.000Z', // 03/10 22:40 em São Paulo
+});
+
+/**
+ * Painel de gestão do Diego em "Últimos 7 dias" (27/09 09:42 a 04/10 09:42 em São Paulo), com
+ * as áreas e os analistas do seed e duas integrações com falha.
+ */
+export function gestao(parcial: Partial<Gestao> = {}): Gestao {
+  return {
+    periodo: {
+      valor: '7d',
+      inicio: '2026-09-27T12:42:00.000Z',
+      fim: '2026-10-04T12:42:00.000Z',
+      granularidade: 'dia',
+    },
+    entradaSaida: entradaSaida(),
+    porArea: AREAS_SEED,
+    porAnalista: ANALISTAS_SEED,
+    integracoesComFalha: [integracaoComFalha(), FALHA_CRM],
+    geradoEm: '2026-10-04T12:41:48.000Z',
+    ...parcial,
+  };
+}
+
+/** O mesmo painel em "Hoje": sem série, sem granularidade e sem período anterior. */
+export function gestaoHoje(parcial: Partial<Gestao> = {}): Gestao {
+  return gestao({
+    periodo: {
+      valor: 'hoje',
+      inicio: '2026-10-04T03:00:00.000Z',
+      fim: '2026-10-04T12:42:00.000Z',
+      granularidade: null,
+    },
+    entradaSaida: entradaSaida({
+      entraram: 0,
+      sairam: 0,
+      aprovadas: 0,
+      rejeitadas: 0,
+      saldo: 0,
+      anterior: null,
+      tempoMedioDecisaoDias: null,
+      prioridadeEntraram: { BAIXA: 0, MEDIA: 0, ALTA: 0 },
+      serie: [],
+    }),
+    ...parcial,
+  });
 }

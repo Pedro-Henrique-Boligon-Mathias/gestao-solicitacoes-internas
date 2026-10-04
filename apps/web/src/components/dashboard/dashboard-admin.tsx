@@ -1,33 +1,40 @@
 import { Suspense } from 'react';
 import {
   EsqueletoDataResumo,
-  EsqueletoGrafico,
-  EsqueletoListas,
+  EsqueletoPainelGestao,
   EsqueletoResumo,
 } from '@/components/esqueletos';
+import type { Periodo } from '@/features/dashboard/periodo';
 import type { UsuarioAtual } from '@/features/auth/usuario';
-import { listarSolicitacoes, obterResumo } from '@/features/solicitacoes/consultas';
-import { BlocoListas, type ListasDashboard } from './bloco-listas';
-import { BlocoResumo, DataResumo, GraficoResumo } from './bloco-resumo';
+import { obterPainelGestao, obterResumo } from '@/features/solicitacoes/consultas';
+import { BlocoPainelGestao } from './bloco-painel-gestao';
+import { BlocoResumo, DataResumo } from './bloco-resumo';
 import { BarraTopo } from './partes';
 
 /**
- * Dashboard do admin no 4B: a "Visão geral" de antes (destaque, blocos de status, listas e o
- * gráfico por prioridade), agora com a atualização automática no destaque. Vira o painel de
- * gestão no 4C. As consultas saem juntas daqui e cada bloco tem o próprio <Suspense>.
+ * Dashboard do admin = painel de gestão (RF-04, Fase 3.5 · PR 4C), na ordem do mock: Visão geral
+ * e os 4 status (resumo do período), Entrada e saída, Por área e Por analista, Integrações com
+ * falha (GET /dashboard/gestao). As duas consultas saem juntas daqui e cada uma tem o próprio
+ * <Suspense>, com esqueleto e erro próprios. A Visão geral também lê o painel (o fato e o botão
+ * das falhas) num <Suspense> interno, sem esperar por ele para mostrar os números.
+ * No celular as falhas sobem para logo depois dos status (`order-*`).
  */
-export async function DashboardAdmin({ usuario }: { usuario: UsuarioAtual }) {
-  const resumo = obterResumo();
-  const listas: ListasDashboard = {
-    tipo: 'analise',
-    fila: listarSolicitacoes({ status: ['ABERTA'], ordenarPor: 'prioridade' }, 5),
-    minhasAnalises: listarSolicitacoes({ status: ['EM_ANALISE'], analista: 'eu' }, 5),
-  };
+export async function DashboardAdmin({
+  usuario,
+  periodo,
+}: {
+  usuario: UsuarioAtual;
+  periodo: Periodo;
+}) {
+  // Em Tudo, o mesmo resumo sem argumento do contador do menu (cache() deduplica a chamada)
+  const resumo = periodo === 'tudo' ? obterResumo() : obterResumo(periodo);
+  const gestao = obterPainelGestao(periodo);
 
   return (
     <>
       <BarraTopo
         usuario={usuario}
+        periodo={periodo}
         dados={
           <Suspense fallback={<EsqueletoDataResumo />}>
             <DataResumo resumo={resumo} />
@@ -35,18 +42,14 @@ export async function DashboardAdmin({ usuario }: { usuario: UsuarioAtual }) {
         }
       />
 
-      <Suspense fallback={<EsqueletoResumo />}>
-        <BlocoResumo usuario={usuario} resumo={resumo} fila={listas.fila} />
-      </Suspense>
-
-      <div className="flex flex-wrap items-start gap-4 max-[760px]:gap-3">
-        <div className="flex min-w-0 flex-[7_1_480px] flex-col gap-4 empty:hidden max-[760px]:gap-3">
-          <Suspense fallback={<EsqueletoListas quantidade={2} />}>
-            <BlocoListas usuario={usuario} resumo={resumo} listas={listas} />
+      <div className="flex flex-col gap-4 max-[760px]:gap-3">
+        <div className="order-1">
+          <Suspense fallback={<EsqueletoResumo />}>
+            <BlocoResumo usuario={usuario} resumo={resumo} gestao={gestao} />
           </Suspense>
         </div>
-        <Suspense fallback={<EsqueletoGrafico />}>
-          <GraficoResumo resumo={resumo} />
+        <Suspense fallback={<EsqueletoPainelGestao className="order-3" />}>
+          <BlocoPainelGestao gestao={gestao} />
         </Suspense>
       </div>
     </>
