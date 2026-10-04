@@ -58,7 +58,9 @@ export function SeloPrioridade({
       )}
     >
       <IconePrioridade prioridade={prioridade} />
-      {ROTULO_PRIORIDADE[prioridade]}
+      {/* Como no selo de status: o leitor de tela ouve "Prioridade: Alta", não um "Alta" solto */}
+      <span className="sr-only">Prioridade: </span>
+      <span>{ROTULO_PRIORIDADE[prioridade]}</span>
     </span>
   );
 }

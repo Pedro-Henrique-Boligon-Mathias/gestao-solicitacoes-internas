@@ -12,7 +12,7 @@ WORKDIR /repo
 FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/web/package.json apps/web/
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile --filter "web..."
 COPY tsconfig.base.json ./
 COPY apps/web apps/web

@@ -6,14 +6,14 @@ Protótipo web para centralizar solicitações internas, acompanhar o andamento 
 
 ## Stack
 
-| Camada         | Tecnologia                                                              |
-| -------------- | ----------------------------------------------------------------------- |
-| Front-end      | Next.js 16 (App Router), React 19, Tailwind CSS 4                       |
-| Back-end       | NestJS 11, Prisma 7                                                     |
-| Banco de dados | PostgreSQL 17                                                           |
-| Contratos      | OpenAPI gerado dos DTOs zod da API (`apps/api/openapi.json`)            |
-| Testes         | Jest + Supertest + Testcontainers (API), Vitest + Testing Library (web) |
-| Infraestrutura | Docker Compose, GitHub Actions                                          |
+| Camada         | Tecnologia                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------- |
+| Front-end      | Next.js 16 (App Router), React 19, Tailwind CSS 4                                         |
+| Back-end       | NestJS 11, Prisma 7                                                                       |
+| Banco de dados | PostgreSQL 17                                                                             |
+| Contratos      | OpenAPI gerado dos DTOs zod da API (`apps/api/openapi.json`)                              |
+| Testes         | Jest + Supertest + Testcontainers (API), Vitest + Testing Library (web), Playwright (E2E) |
+| Infraestrutura | Docker Compose, GitHub Actions                                                            |
 
 ## Como executar
 
@@ -115,11 +115,27 @@ O `pnpm dev` sobe a API (porta 3001), a web (porta 3000) e o simulador do sistem
 | `pnpm build`            | Build de produção                                                                     |
 | `pnpm format`           | Formata o código com Prettier                                                         |
 | `pnpm test:integration` | Testes de integração da API com Postgres real (requer Docker)                         |
+| `pnpm test:e2e`         | Jornadas E2E com Playwright contra o `docker compose` (requer o ambiente de pé)       |
 | `pnpm contract:check`   | Regenera o `openapi.json` e os tipos do web e falha se mudarem                        |
 | `pnpm verify`           | Tudo que a CI verifica: formatação, lint, tipos, testes, build, contrato e integração |
 | `pnpm db:migrate`       | Aplica as migrations                                                                  |
 | `pnpm db:seed`          | Cria as áreas e os usuários de demonstração                                           |
 | `pnpm db:reset`         | Recria o banco do zero (apaga os dados)                                               |
+
+### Testes E2E
+
+As jornadas críticas rodam com Playwright (Chromium) contra o ambiente completo do `docker compose`, sem servidor próprio. Ficam em `apps/web/e2e`: criar uma solicitação (também num celular de 390px), analisar e aprovar com reflexo no dashboard, isolamento entre solicitantes (404 no link direto) e reabertura pelo Admin.
+
+```bash
+docker compose up --build --wait
+pnpm --filter web exec playwright install chromium   # só na primeira vez
+pnpm test:e2e
+```
+
+- O endereço padrão é `http://localhost:3000`; para outro, use `E2E_BASE_URL=http://host:porta pnpm test:e2e`. A senha dos usuários vem de `SEED_PASSWORD` (padrão `Demo@2026`).
+- Cada usuário entra uma vez por execução (o login tem limite de 5 tentativas por minuto por e-mail), e cada jornada cria as próprias solicitações com título único: a suíte roda de novo sem recriar o banco.
+- Relatório e traces: `pnpm --filter web exec playwright show-report` (o relatório HTML é gerado na CI ou com `--reporter=html`) e `pnpm --filter web exec playwright show-trace <arquivo>` para o trace de uma falha em `apps/web/test-results`.
+- O E2E fica fora do `pnpm verify`, porque precisa do ambiente de pé, mas roda na CI no job do Docker, depois que o ambiente sobe. Na falha, a CI publica o relatório e os traces do Playwright.
 
 ## Estrutura
 
@@ -138,6 +154,7 @@ O `pnpm dev` sobe a API (porta 3001), a web (porta 3000) e o simulador do sistem
 │   │   └── test/             # testes HTTP e de integração (integracao/)
 │   ├── ext-mock/             # simulador do sistema externo (Node, sem framework)
 │   └── web/                  # Next.js
+│       ├── e2e/              # jornadas E2E (Playwright)
 │       └── src/
 │           ├── app/          # rotas (App Router)
 │           ├── components/
@@ -172,7 +189,7 @@ O `pnpm dev` sobe a API (porta 3001), a web (porta 3000) e o simulador do sistem
 - **pre-commit:** bloqueia arquivos `.env`, chaves e certificados, e roda ESLint e Prettier nos arquivos alterados.
 - **commit-msg:** exige mensagens no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/).
 - **pre-push:** formatação, lint, tipos, testes e contrato OpenAPI.
-- **CI (GitHub Actions):** em todo PR e push na `main`, roda a validação completa (com o contrato OpenAPI), os testes de integração com Postgres real, sobe o ambiente Docker do zero e verifica a API e a web, e faz uma varredura de segredos.
+- **CI (GitHub Actions):** em todo PR e push na `main`, roda a validação completa (com o contrato OpenAPI), os testes de integração com Postgres real, sobe o ambiente Docker do zero, verifica a API e a web e roda as jornadas E2E com Playwright, e faz uma varredura de segredos.
 
 Os hooks são instalados automaticamente pelo `pnpm install`.
 

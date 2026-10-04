@@ -9,7 +9,7 @@ RUN corepack enable && corepack prepare pnpm@10.34.6 --activate
 WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/ext-mock/package.json apps/ext-mock/
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile --filter "ext-mock..."
 COPY tsconfig.base.json ./
 COPY apps/ext-mock apps/ext-mock

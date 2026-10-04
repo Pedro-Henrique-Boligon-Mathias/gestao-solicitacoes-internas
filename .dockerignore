@@ -3,6 +3,9 @@
 **/.next
 **/.turbo
 **/coverage
+**/playwright-report
+**/test-results
+apps/web/e2e/.auth
 **/*.tsbuildinfo
 apps/api/src/generated
 .git

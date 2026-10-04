@@ -49,7 +49,9 @@ export function SeloStatus({ status, className }: { status: Status; className?: 
       )}
     >
       <PontoStatus status={status} />
-      {ROTULO_STATUS[status]}
+      {/* O leitor de tela ouve "Status: Aprovada", o que distingue o selo do mesmo texto no histórico */}
+      <span className="sr-only">Status: </span>
+      <span>{ROTULO_STATUS[status]}</span>
     </span>
   );
 }
