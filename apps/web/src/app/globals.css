@@ -180,6 +180,14 @@ body {
   }
 }
 
+/* Entrada da folha do celular: sobe do rodapé. O deslocamento horizontal fica na propriedade
+   `translate` (Tailwind), então o transform daqui não o desfaz. */
+@keyframes subir {
+  from {
+    transform: translateY(100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

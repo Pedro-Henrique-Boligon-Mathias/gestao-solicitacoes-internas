@@ -6,6 +6,7 @@ import type { UsuarioAtual } from '@/features/auth/usuario';
 import { temFiltroAtivo, urlDaLista, type Filtros } from '@/features/solicitacoes/filtros';
 import type { ItemSolicitacao, PaginaSolicitacoes } from '@/features/solicitacoes/tipos';
 import { BotaoNovaSolicitacao } from './botao-nova-solicitacao';
+import { CardSolicitacao } from './card-solicitacao';
 import { CodigoSolicitacao } from './codigo-solicitacao';
 import { DataRelativa } from './data-relativa';
 import { SeloPrioridade } from './selo-prioridade';
@@ -74,7 +75,10 @@ export function ListaSolicitacoes({
   }
 
   return (
-    <section aria-label="Resultados" className="bg-card rounded-card flex flex-col p-2">
+    <section
+      aria-label="Resultados"
+      className="bg-card rounded-card flex flex-col p-2 max-[760px]:gap-2.5 max-[760px]:rounded-none max-[760px]:bg-transparent max-[760px]:p-0"
+    >
       <div className="overflow-x-auto max-[760px]:hidden">
         <table className="w-full border-separate border-spacing-0 text-sm">
           <thead>
@@ -139,30 +143,11 @@ export function ListaSolicitacoes({
         </table>
       </div>
 
-      <ul className="hidden flex-col max-[760px]:flex">
+      {/* Celular: cards separados (10px), brancos sobre o fundo da página */}
+      <ul className="hidden flex-col gap-2.5 max-[760px]:flex">
         {itens.map((item) => (
-          <li key={item.id} className="border-border border-b last:border-b-0">
-            <Link
-              href={linkDetalhe(item)}
-              className="hover:bg-muted focus-visible:outline-ring rounded-row flex flex-col gap-2 p-3 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2"
-            >
-              <span className="flex items-center justify-between gap-3">
-                <CodigoSolicitacao codigo={item.codigo} />
-                <DataRelativa
-                  iso={item.dataSolicitacao}
-                  className="text-muted-foreground text-[13px]"
-                />
-              </span>
-              <span className="font-semibold">{item.titulo}</span>
-              <span className="text-muted-foreground text-[13px]">
-                {item.area.nome}
-                {mostrarSolicitante && ` · ${item.solicitante.nome}`}
-              </span>
-              <span className="flex flex-wrap gap-2">
-                <SeloStatus status={item.status} />
-                <SeloPrioridade prioridade={item.prioridade} />
-              </span>
-            </Link>
+          <li key={item.id}>
+            <CardSolicitacao item={item} usuario={usuario} />
           </li>
         ))}
       </ul>
@@ -193,7 +178,7 @@ function Paginacao({
   return (
     <nav
       aria-label="Paginação"
-      className="border-border mx-1 mt-1 flex flex-wrap items-center justify-between gap-3 border-t px-2 pt-3 pb-1.5"
+      className="border-border mx-1 mt-1 flex flex-wrap items-center justify-between gap-3 border-t px-2 pt-3 pb-1.5 max-[760px]:mx-0 max-[760px]:mt-0 max-[760px]:border-t-0 max-[760px]:px-0.5 max-[760px]:pt-1"
     >
       <p className="text-muted-foreground text-[13px]">
         {total} {total === 1 ? 'solicitação' : 'solicitações'} · Página {pagina} de{' '}

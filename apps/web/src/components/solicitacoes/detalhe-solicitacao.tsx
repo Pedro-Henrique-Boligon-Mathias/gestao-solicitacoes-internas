@@ -2,7 +2,6 @@ import { ChevronLeft, CircleCheck, CircleX } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { UsuarioAtual } from '@/features/auth/usuario';
-import { acoesDaBarra } from '@/features/solicitacoes/acoes';
 import { formatarData } from '@/features/solicitacoes/datas';
 import { ROTULO_STATUS } from '@/features/solicitacoes/rotulos';
 import type { EventoHistorico, Solicitacao } from '@/features/solicitacoes/tipos';
@@ -40,10 +39,10 @@ export function DetalheSolicitacao({
   const comVoce = solicitacao.status === 'EM_ANALISE' && solicitacao.analista?.id === usuario.id;
   const desde = comVoce ? (inicioDaAnalise(historico) ?? solicitacao.atualizadoEm) : undefined;
   const { decisao } = solicitacao;
-  const temAcoes = acoesDaBarra(solicitacao).length > 0;
 
   return (
-    <div className={cn('flex flex-col gap-4 max-[760px]:gap-3', temAcoes && 'max-[760px]:pb-20')}>
+    // O espaço para a barra de ações no celular vem do layout (mesma altura da barra de navegação)
+    <div className="flex flex-col gap-4 max-[760px]:gap-3">
       <Link
         href="/solicitacoes"
         className="text-link rounded-field focus-visible:outline-ring flex w-fit items-center gap-1.5 px-1 text-sm font-semibold outline-none hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 max-[760px]:min-h-11"

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   abrirModalNovaSolicitacao,
+  abrirModalPelaBarra,
   buscarNaLista,
   preencherECriar,
   esperarStatus,
@@ -15,7 +16,10 @@ test(
   { tag: '@celular' },
   async ({ page, isMobile }) => {
     const titulo = tituloUnico('Acesso à VPN');
-    const modal = await abrirModalNovaSolicitacao(page);
+    // No celular, a criação começa pelo "+" da barra de navegação (Fase 3.5)
+    const modal = isMobile
+      ? await abrirModalPelaBarra(page)
+      : await abrirModalNovaSolicitacao(page);
 
     if (isMobile) {
       // Abaixo de 760px o modal vira folha: largura da tela, colado no rodapé

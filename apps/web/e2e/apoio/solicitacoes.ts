@@ -36,6 +36,21 @@ export async function abrirModalNovaSolicitacao(page: Page): Promise<Locator> {
   return modal;
 }
 
+/** Barra de navegação do celular (Dashboard · + · Solicitações · Você), fixa no rodapé. */
+export const barraNavegacao = (page: Page): Locator =>
+  page.getByRole('navigation', { name: 'Barra de navegação' });
+
+/** Celular: abre o modal de criação pelo "+" da barra de navegação, a partir do dashboard. */
+export async function abrirModalPelaBarra(page: Page): Promise<Locator> {
+  await page.goto('/dashboard');
+  const barra = barraNavegacao(page);
+  await expect(barra).toBeVisible();
+  await barra.getByRole('button', { name: 'Nova solicitação' }).click();
+  const modal = modalNovaSolicitacao(page);
+  await expect(modal).toBeVisible();
+  return modal;
+}
+
 /** Preenche o formulário do modal e cria a solicitação; espera o detalhe abrir. */
 export async function preencherECriar(
   page: Page,

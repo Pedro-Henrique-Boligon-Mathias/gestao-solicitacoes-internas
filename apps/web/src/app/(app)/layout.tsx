@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
 import { MenuPrincipal } from '@/components/menu-principal';
-import { MenuUsuario } from '@/components/menu-usuario';
+import { BarraNavegacao } from '@/components/barra-navegacao';
+import { CabecalhoAreaLogada } from '@/components/cabecalho-area-logada';
 import { obterResumo } from '@/features/solicitacoes/consultas';
 import { obterUsuarioAtual } from '@/lib/api/autenticado';
 
@@ -38,7 +39,7 @@ async function ContadorFila() {
   );
 }
 
-/** Área logada: menu lateral, cabeçalho com o usuário e o conteúdo da página. */
+/** Área logada: menu lateral (desktop) ou barra no rodapé (celular), cabeçalho e o conteúdo. */
 export default async function LayoutAreaLogada({ children }: { children: ReactNode }) {
   const resultado = await obterUsuarioAtual();
   // Sessão recusada pela API com cookies ainda presentes: a rota limpa os cookies e leva ao login
@@ -55,18 +56,19 @@ export default async function LayoutAreaLogada({ children }: { children: ReactNo
     );
 
   return (
-    <div className="flex min-h-dvh flex-wrap content-start items-stretch gap-4 p-4 max-[760px]:gap-3 max-[760px]:p-2.5">
-      <MenuPrincipal contador={contador} />
-      {/* Base de 512px: com o menu de 200px e as margens, a quebra cai perto dos 760px */}
-      <div className="flex min-w-0 flex-[999_1_512px] flex-col gap-4 max-[760px]:gap-3">
-        <header className="flex flex-wrap items-center justify-between gap-3 px-1 pt-1.5">
+    <div className="flex min-h-dvh items-start gap-4 p-4 max-[760px]:gap-3 max-[760px]:p-2.5 max-[760px]:pb-[calc(96px+env(safe-area-inset-bottom))]">
+      {/* Desktop: menu lateral fixo na altura da tela; só a coluna de conteúdo rola */}
+      <MenuPrincipal usuario={usuario} contador={contador} />
+      <div className="flex min-w-0 flex-1 flex-col gap-4 max-[760px]:gap-3">
+        <CabecalhoAreaLogada>
           <p className="font-display text-2xl leading-tight font-semibold tracking-[-0.03em]">
             {saudacao()}, <span className="text-muted-foreground font-normal">{primeiroNome}</span>
           </p>
-          <MenuUsuario usuario={usuario} />
-        </header>
+        </CabecalhoAreaLogada>
         <main className="flex min-w-0 flex-col gap-4">{children}</main>
       </div>
+      {/* Celular: navegação no rodapé, no lugar do menu lateral */}
+      <BarraNavegacao usuario={usuario} contador={contador} />
     </div>
   );
 }
