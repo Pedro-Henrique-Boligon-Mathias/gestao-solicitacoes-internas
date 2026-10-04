@@ -62,8 +62,13 @@ export const obterResumo = cache(() =>
   consultar<ResumoDashboard>((cliente, opcoes) => cliente.GET('/api/v1/dashboard/resumo', opcoes)),
 );
 
+/** Filtros da consulta: os da lista, mais a ordem por decisão (só o dashboard usa). */
+export type FiltrosConsulta = Partial<Omit<Filtros, 'ordenarPor'>> & {
+  ordenarPor?: Filtros['ordenarPor'] | 'decididoEm';
+};
+
 export function listarSolicitacoes(
-  filtros: Partial<Filtros>,
+  filtros: FiltrosConsulta,
   pageSize?: number,
 ): Promise<Consulta<PaginaSolicitacoes>> {
   const query = {

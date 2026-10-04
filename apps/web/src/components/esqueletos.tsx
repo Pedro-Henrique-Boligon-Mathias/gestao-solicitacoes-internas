@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 /**
  * Esqueletos de carregamento no formato de cada tela (loading.tsx) ou de cada bloco do
@@ -39,12 +40,18 @@ export function EsqueletoGrafico() {
 }
 
 /** Listas do dashboard: um card por lista do cargo (2 para quem analisa, 1 para o solicitante). */
-export function EsqueletoListas({ quantidade = 1 }: { quantidade?: number }) {
+export function EsqueletoListas({
+  quantidade = 1,
+  className,
+}: {
+  quantidade?: number;
+  className?: string;
+}) {
   return (
     <div
       role="status"
       aria-label="Carregando as listas"
-      className="flex flex-col gap-4 max-[760px]:gap-3"
+      className={cn('flex flex-col gap-4 max-[760px]:gap-3', className)}
     >
       {Array.from({ length: quantidade }, (_, lista) => (
         <div key={lista} className="bg-card rounded-card flex flex-col gap-3 p-5">
@@ -67,11 +74,6 @@ export function EsqueletoDataResumo() {
 /** Botão do card de destaque que depende de um item da lista ("Iniciar a próxima"). */
 export function EsqueletoBotaoDestaque() {
   return <Skeleton className="rounded-pill h-10 w-40 bg-white/15" />;
-}
-
-/** Frase do card de destaque que depende de um item da lista ("A mais recente é …"). */
-export function EsqueletoFraseDestaque() {
-  return <Skeleton className="h-4 w-64 max-w-full bg-white/15" />;
 }
 
 export function EsqueletoLista() {

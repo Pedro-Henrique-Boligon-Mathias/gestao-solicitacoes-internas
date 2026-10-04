@@ -9,13 +9,15 @@ import { CardLista, LinhaItem, URL_FILA } from './partes';
 
 type PromessaLista = Promise<Consulta<PaginaSolicitacoes>>;
 
-/** As listas do cargo: as duas de quem analisa ou as últimas do solicitante. */
-export type ListasDashboard =
-  | { tipo: 'analise'; fila: PromessaLista; minhasAnalises: PromessaLista }
-  | { tipo: 'solicitante'; ultimas: PromessaLista };
+/** As listas do dashboard do admin: a fila e as análises com ele. */
+export type ListasDashboard = {
+  tipo: 'analise';
+  fila: PromessaLista;
+  minhasAnalises: PromessaLista;
+};
 
 /**
- * Bloco das listas do dashboard (RF-04). As requisições já saíram em paralelo na página; aqui
+ * Bloco das listas do dashboard do admin (RF-04). As requisições já saíram em paralelo na página; aqui
  * só a renderização espera também o resumo: sem solicitações, o bloco do resumo mostra o estado
  * vazio e as listas não aparecem. Se o resumo falhou, as listas aparecem normalmente. Uma falha
  * numa lista mostra o erro só neste bloco.
@@ -29,9 +31,11 @@ export async function BlocoListas({
   resumo: Promise<Consulta<ResumoDashboard>>;
   listas: ListasDashboard;
 }) {
-  const promessas =
-    listas.tipo === 'analise' ? [listas.fila, listas.minhasAnalises] : [listas.ultimas];
-  const [consultaResumo, ...consultas] = await Promise.all([resumo, ...promessas]);
+  const [consultaResumo, ...consultas] = await Promise.all([
+    resumo,
+    listas.fila,
+    listas.minhasAnalises,
+  ]);
 
   if (consultaResumo.ok && consultaResumo.dados.total === 0) return null;
 
@@ -46,30 +50,6 @@ export async function BlocoListas({
   const [primeira = [], segunda = []] = consultas.map((consulta) =>
     consulta.ok ? consulta.dados.data : [],
   );
-
-  if (listas.tipo === 'solicitante') {
-    return (
-      <CardLista
-        titulo="Minhas últimas solicitações"
-        subtitulo="As 5 mais recentes"
-        href="/solicitacoes"
-        vazio="Nenhuma solicitação ainda."
-      >
-        {primeira.map((item) => (
-          <LinhaItem
-            key={item.id}
-            item={item}
-            detalhe={
-              <>
-                Aberta <DataRelativa iso={item.dataSolicitacao} />
-              </>
-            }
-            acao={<SeloStatus status={item.status} />}
-          />
-        ))}
-      </CardLista>
-    );
-  }
 
   return (
     <>
