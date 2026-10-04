@@ -86,6 +86,8 @@ describe('RF-04: GET /dashboard/resumo e GET /areas', () => {
       porPrioridade: { BAIXA: 0, MEDIA: 0, ALTA: 0 },
       filaAlta: 0,
       aberturaMaisAntiga: null,
+      // PR 4C: sem o parâmetro, o período é tudo
+      periodo: { valor: 'tudo', inicio: null, fim: expect.stringMatching(ISO_UTC) },
       geradoEm: expect.stringMatching(ISO_UTC),
     });
     expect(Date.parse(corpo.geradoEm)).toBeGreaterThanOrEqual(antes - 1000);
@@ -119,6 +121,8 @@ describe('RF-04: GET /dashboard/resumo e GET /areas', () => {
       filaAlta: 2,
       // A EM_ANALISE é mais antiga, mas só ABERTA conta
       aberturaMaisAntiga: datas[2],
+      // PR 4C: sem o parâmetro, o período é tudo
+      periodo: { valor: 'tudo', inicio: null, fim: expect.stringMatching(ISO_UTC) },
       geradoEm: expect.stringMatching(ISO_UTC),
     });
   });
@@ -136,6 +140,8 @@ describe('RF-04: GET /dashboard/resumo e GET /areas', () => {
       expect(corpo).toEqual({
         escopo: 'GERAL',
         ...(await esperadoNoBanco()),
+        // PR 4C: sem o parâmetro, o período é tudo
+        periodo: { valor: 'tudo', inicio: null, fim: expect.stringMatching(ISO_UTC) },
         geradoEm: expect.stringMatching(ISO_UTC),
       });
       expect(corpo.total).toBeGreaterThan(0);

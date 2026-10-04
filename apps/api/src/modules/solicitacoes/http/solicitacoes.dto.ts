@@ -108,9 +108,11 @@ export const consultaListaSchema = z.object({
     ),
   direcao: z.enum(['asc', 'desc'], 'A direção deve ser asc ou desc.').default('desc'),
   analista: z
-    .enum(['eu'], 'O filtro de analista aceita só "eu".')
+    .union([z.literal('eu'), z.uuid()], 'O filtro de analista aceita "eu" ou o id de um analista.')
     .optional()
-    .describe('eu: só as que têm o usuário atual como analista responsável'),
+    .describe(
+      'eu: só as que têm o usuário atual como analista responsável; <id> (UUID): só as desse analista. Ignorado para o solicitante, que vê todas as próprias',
+    ),
   area: z
     .union([z.uuid('Área inválida.'), z.array(z.uuid('Área inválida.'))])
     .transform((recebido) => (Array.isArray(recebido) ? recebido : [recebido]))
