@@ -41,7 +41,8 @@ export default async function PaginaSolicitacoes({ searchParams }: PageProps<'/s
             </p>
           )}
         </div>
-        <div className="max-[760px]:w-full max-[760px]:[&>button]:h-11 max-[760px]:[&>button]:w-full">
+        {/* No celular, quem cria é o "+" da barra de navegação */}
+        <div className="max-[760px]:hidden">
           <BotaoNovaSolicitacao usuario={usuario} />
         </div>
       </div>

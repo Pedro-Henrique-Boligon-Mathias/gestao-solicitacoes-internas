@@ -38,9 +38,10 @@ const percentual = (valor: number, total: number) =>
  */
 export function BarraTopo({ usuario, dados }: { usuario: UsuarioAtual; dados: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-1 max-[760px]:[&>button]:h-11 max-[760px]:[&>button]:w-full">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-1">
       <div className="flex min-h-5 items-center">{dados}</div>
-      <BotaoNovaSolicitacao usuario={usuario} />
+      {/* No celular, quem cria é o "+" da barra de navegação */}
+      <BotaoNovaSolicitacao usuario={usuario} className="max-[760px]:hidden" />
     </div>
   );
 }

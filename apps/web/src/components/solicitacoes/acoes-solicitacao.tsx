@@ -84,7 +84,8 @@ export function AcoesSolicitacao({
       <div
         className={cn(
           'flex flex-wrap items-center justify-end gap-2.5',
-          'max-[760px]:bg-card max-[760px]:fixed max-[760px]:inset-x-2.5 max-[760px]:bottom-2.5 max-[760px]:z-40 max-[760px]:flex-nowrap max-[760px]:rounded-card max-[760px]:p-2.5 max-[760px]:shadow-[0_10px_30px_rgb(14_22_38/18%)] max-[760px]:[&>*]:h-11',
+          // Celular: mesma pílula e posição da barra de navegação, que some no detalhe
+          'max-[760px]:bg-card max-[760px]:fixed max-[760px]:bottom-[calc(12px+env(safe-area-inset-bottom))] max-[760px]:left-1/2 max-[760px]:z-40 max-[760px]:w-[min(366px,calc(100%-24px))] max-[760px]:-translate-x-1/2 max-[760px]:flex-nowrap max-[760px]:gap-2 max-[760px]:rounded-[24px] max-[760px]:p-2.5 max-[760px]:shadow-[0_10px_30px_rgb(14_22_38/18%)] max-[760px]:dark:shadow-[0_0_0_1px_var(--border),0_10px_30px_rgb(0_0_0/50%)] max-[760px]:[&>*]:h-12 max-[760px]:[&>*]:flex-1 max-[760px]:[&>*]:text-[15px]',
           className,
         )}
       >
