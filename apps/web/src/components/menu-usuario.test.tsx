@@ -121,6 +121,14 @@ describe('Menu do usuário', () => {
     }
   });
 
+  it('ADR-013: o menu aberto mostra o e-mail do usuário (Fase 3.5)', async () => {
+    renderizar();
+
+    await abrirMenu();
+
+    expect(await screen.findByText('carla.mendes@demo.test')).toBeInTheDocument();
+  });
+
   it('ADR-013: escolher "Escuro" aplica o tema escuro', async () => {
     renderizar();
     await waitFor(() => expect(html()).toHaveClass('light'));

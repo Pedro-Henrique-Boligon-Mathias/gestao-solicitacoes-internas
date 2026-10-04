@@ -5,58 +5,76 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Marca } from '@/components/marca';
+import type { UsuarioAtual } from '@/features/auth/usuario';
 import { cn } from '@/lib/utils';
+import { MenuUsuario } from './menu-usuario';
 
-const ITENS: { href: string; rotulo: string; Icone: LucideIcon }[] = [
+export const ITENS_NAVEGACAO: { href: string; rotulo: string; Icone: LucideIcon }[] = [
   { href: '/dashboard', rotulo: 'Dashboard', Icone: LayoutDashboard },
   { href: '/solicitacoes', rotulo: 'Solicitações', Icone: Inbox },
 ];
 
-/** Menu lateral; abaixo de 760px vira uma pílula horizontal no topo. */
-export function MenuPrincipal({ contador }: { contador?: ReactNode }) {
+export const itemAtivo = (caminho: string, href: string) =>
+  caminho === href || caminho.startsWith(`${href}/`);
+
+/**
+ * Menu lateral do desktop: fixo com a altura da tela (sticky), 244px, e o usuário no rodapé.
+ * Só a coluna de conteúdo rola. Abaixo de 760px some: a barra de navegação ocupa o lugar dele.
+ * O contador da fila é de quem analisa; o solicitante não o vê mesmo se receber (RN-13).
+ */
+export function MenuPrincipal({
+  usuario,
+  contador,
+}: {
+  usuario: UsuarioAtual;
+  contador?: ReactNode;
+}) {
   const caminho = usePathname();
+  const mostrarContador = usuario.cargo !== 'SOLICITANTE';
 
   return (
     <nav
       aria-label="Principal"
       className={cn(
-        'bg-card rounded-card flex flex-[1_1_200px] flex-col gap-1 px-3.5 py-[18px]',
-        'max-[760px]:rounded-pill max-[760px]:basis-full max-[760px]:flex-row max-[760px]:items-center max-[760px]:gap-0.5 max-[760px]:p-1.5',
+        'bg-card rounded-card sticky top-4 flex h-[calc(100dvh-32px)] w-[244px] flex-none flex-col gap-1 px-3 pt-4 pb-3',
+        'max-[760px]:hidden',
       )}
     >
       <Link
         href="/dashboard"
-        className="rounded-field focus-visible:outline-ring px-2 pt-1 pb-[18px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 max-[760px]:px-0.5 max-[760px]:py-0"
+        className="rounded-field focus-visible:outline-ring px-2 pt-0.5 pb-[18px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
       >
-        <Marca className="max-[760px]:[&>span:last-child]:sr-only" />
+        <Marca />
       </Link>
       <ul className="contents">
-        {ITENS.map(({ href, rotulo, Icone }) => {
-          const ativo = caminho === href || caminho.startsWith(`${href}/`);
+        {ITENS_NAVEGACAO.map(({ href, rotulo, Icone }) => {
+          const ativo = itemAtivo(caminho, href);
           return (
             <li key={href} className="contents">
               <Link
                 href={href}
                 aria-current={ativo ? 'page' : undefined}
                 className={cn(
-                  'rounded-pill flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors duration-150 outline-none',
+                  'rounded-pill flex h-11 items-center gap-3 px-3.5 text-sm font-medium transition-colors duration-150 outline-none',
                   'focus-visible:outline-ring focus-visible:outline-2 focus-visible:outline-offset-2',
                   ativo
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  'max-[760px]:gap-2 max-[760px]:px-3 max-[760px]:py-[9px] max-[760px]:text-[13px]',
-                  !ativo && 'max-[760px]:px-2.5',
                 )}
               >
                 <Icone aria-hidden="true" className="size-[18px]" strokeWidth={1.8} />
-                {/* No celular, os itens inativos mostram só o ícone */}
-                <span className={cn(!ativo && 'max-[760px]:sr-only')}>{rotulo}</span>
-                {href === '/solicitacoes' && contador}
+                <span>{rotulo}</span>
+                {href === '/solicitacoes' && mostrarContador && contador && (
+                  <span className="ml-auto flex">{contador}</span>
+                )}
               </Link>
             </li>
           );
         })}
       </ul>
+      <div className="mt-auto">
+        <MenuUsuario usuario={usuario} />
+      </div>
     </nav>
   );
 }
