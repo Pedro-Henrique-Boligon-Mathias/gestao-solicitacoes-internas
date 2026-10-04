@@ -2,6 +2,7 @@
  * Peças visuais do dashboard, sem consulta: os blocos assíncronos (bloco-resumo e bloco-listas)
  * montam a tela com elas.
  */
+import { saudacao } from '@/lib/saudacao';
 import { ArrowUpRight, CircleCheck, CircleX, Clock, Inbox, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Children, type ReactNode } from 'react';
@@ -38,6 +39,13 @@ const percentual = (valor: number, total: number) =>
  * Linha de ações da página: a data dos dados à esquerda e a ação principal ("Nova solicitação")
  * no canto direito. Não espera consulta nenhuma: a data chega com o resumo, em `dados`.
  */
+/**
+ * Dashboard que cabe na tela (variante `tela`: desktop com altura suficiente). A coluna ocupa a
+ * altura da janela e as listas rolam dentro dos cards; em telas menores a página rola normalmente.
+ */
+export const CLASSE_DASHBOARD_TELA =
+  'flex flex-col gap-4 max-[760px]:gap-3 tela:h-[calc(100dvh-2rem)]';
+
 export function BarraTopo({
   usuario,
   dados,
@@ -48,15 +56,22 @@ export function BarraTopo({
   /** Com o período, o cabeçalho ganha o seletor (vale só para os indicadores). */
   periodo?: Periodo;
 }) {
+  const primeiroNome = usuario.nome.split(' ')[0];
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-      <div className="flex min-h-5 items-center">{dados}</div>
+    // Cabeçalho do dashboard: saudação e data à esquerda, período e "Nova solicitação" à direita
+    <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-1 pt-1">
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1">
+        <p className="font-display text-2xl leading-tight font-semibold tracking-[-0.03em]">
+          {saudacao()}, <span className="text-muted-foreground font-normal">{primeiroNome}</span>
+        </p>
+        <div className="flex min-h-5 items-center">{dados}</div>
+      </div>
       <div className="flex items-center gap-3">
         {periodo && <SeletorPeriodo periodo={periodo} />}
         {/* No celular, quem cria é o "+" da barra de navegação */}
         <BotaoNovaSolicitacao usuario={usuario} className="max-[760px]:hidden" />
       </div>
-    </div>
+    </header>
   );
 }
 
@@ -144,7 +159,7 @@ export function BlocoStatus({
       href={`/solicitacoes?status=${status}`}
       // Nome falado inteiro: "Aprovadas: 14 solicitações, 35% do total"
       aria-label={`${ROTULO_STATUS_PLURAL[status]}: ${valor} ${valor === 1 ? 'solicitação' : 'solicitações'}, ${pct}% do total`}
-      className="bg-tile rounded-card hover:bg-muted/60 focus-visible:outline-ring flex min-w-0 flex-col gap-3 px-5 py-[18px] transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 max-[760px]:px-4 max-[760px]:py-3.5"
+      className="bg-tile rounded-card hover:bg-muted/60 focus-visible:outline-ring flex min-w-0 flex-col gap-3 px-5 py-[18px] tela:gap-2 tela:py-3.5 transition-colors duration-150 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 max-[760px]:px-4 max-[760px]:py-3.5"
     >
       <span className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-2 text-sm font-semibold">
@@ -158,7 +173,7 @@ export function BlocoStatus({
           <span
             aria-hidden="true"
             className={cn(
-              'rounded-field grid size-9 place-items-center',
+              'rounded-field grid size-9 place-items-center tela:size-8',
               CORES_STATUS[status].selo,
             )}
           >
@@ -170,7 +185,7 @@ export function BlocoStatus({
         <span
           className={cn(
             'font-display leading-[0.95] font-semibold tracking-[-0.035em]',
-            compacto ? 'text-[34px]' : 'text-5xl max-[760px]:text-[38px]',
+            compacto ? 'text-[34px]' : 'text-5xl max-[760px]:text-[38px] tela:text-[40px]',
           )}
         >
           {valor}

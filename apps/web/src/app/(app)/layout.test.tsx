@@ -151,9 +151,8 @@ describe('RF-04: layout da área logada', () => {
     await renderizarLayout();
 
     expect(within(menu()).getByRole('button', { name: /Carla Mendes/ })).toBeInTheDocument();
-    expect(
-      within(screen.getByRole('banner')).queryByRole('button', { name: /Carla Mendes/ }),
-    ).not.toBeInTheDocument();
+    // O único botão com o nome da Carla é o do menu (nenhum no cabeçalho)
+    expect(screen.getAllByRole('button', { name: /^Carla Mendes/ })).toHaveLength(1);
   });
 
   it('ADR-013: o layout tem a barra de navegação do celular com o "+" e o avatar "Você"', async () => {
