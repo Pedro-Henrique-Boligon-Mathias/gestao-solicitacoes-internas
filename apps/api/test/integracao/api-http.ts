@@ -50,7 +50,11 @@ export async function subirApi(
   const modulo = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = modulo.createNestApplication<INestApplication<App>>();
   configurarApp(app, { origemWeb: 'http://localhost:3000' });
-  await app.init();
+  // Escuta uma vez, em 127.0.0.1 e porta livre. Sem isso o supertest faz listen(0) em `::` a cada
+  // requisição e conecta em 127.0.0.1:porta; no macOS esse bind é aceito mesmo quando outro
+  // processo já escuta em 127.0.0.1 na mesma porta, e a requisição cai no servidor errado
+  // (respostas 404/401 que não vêm da API). O app.close() do afterAll fecha o servidor.
+  await app.listen(0, '127.0.0.1');
   return app;
 }
 

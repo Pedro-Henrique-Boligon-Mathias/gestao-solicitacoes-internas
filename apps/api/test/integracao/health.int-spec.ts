@@ -12,7 +12,8 @@ describe('ADR-009: health contra banco real', () => {
     const modulo = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = modulo.createNestApplication();
     configurarApp(app, { origemWeb: 'http://localhost:3000' });
-    await app.init();
+    // Servidor próprio em 127.0.0.1 (o motivo está em test/integracao/api-http.ts)
+    await app.listen(0, '127.0.0.1');
   });
 
   afterAll(async () => {
