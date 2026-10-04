@@ -3,11 +3,13 @@ import { redirect } from 'next/navigation';
 import { cache } from 'react';
 import { criarClienteApiAutenticado } from '@/lib/api/autenticado';
 import { criarClienteApi } from '@/lib/api/client';
+import type { Periodo } from '@/features/dashboard/periodo';
 import type { Filtros } from './filtros';
 import type {
   Area,
   EventoHistorico,
   PaginaSolicitacoes,
+  PainelGestao,
   ResumoDashboard,
   Solicitacao,
 } from './tipos';
@@ -57,9 +59,26 @@ async function consultar<T>(
   return resultado;
 }
 
-/** Resumo do dashboard; uma vez por requisição (o menu e o dashboard usam o mesmo). */
-export const obterResumo = cache(() =>
-  consultar<ResumoDashboard>((cliente, opcoes) => cliente.GET('/api/v1/dashboard/resumo', opcoes)),
+export type { PainelGestao } from './tipos';
+
+/**
+ * Resumo do dashboard; uma vez por requisição para cada período. Sem período (contador do menu,
+ * fila e listas), a API usa tudo e a URL vai sem ?periodo=.
+ */
+export const obterResumo = cache((periodo?: Periodo) =>
+  consultar<ResumoDashboard>((cliente, opcoes) =>
+    cliente.GET('/api/v1/dashboard/resumo', {
+      params: { query: periodo ? { periodo } : {} },
+      ...opcoes,
+    }),
+  ),
+);
+
+/** Painel de gestão do admin. 403 volta como falha (`ok: false`) para a página decidir. */
+export const obterPainelGestao = cache((periodo: Periodo) =>
+  consultar<PainelGestao>((cliente, opcoes) =>
+    cliente.GET('/api/v1/dashboard/gestao', { params: { query: { periodo } }, ...opcoes }),
+  ),
 );
 
 /** Filtros da consulta: os da lista, mais a ordem por decisão (só o dashboard usa). */

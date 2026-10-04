@@ -166,3 +166,60 @@ describe('ADR-012/RF-02: listarSolicitacoes continua por usuário e sem cache', 
     expect(chamada(fetchFalso).url.searchParams.has('area')).toBe(false);
   });
 });
+
+describe('RF-04: período nas consultas do dashboard (Fase 3.5, PR 4C)', () => {
+  beforeEach(() => {
+    vi.stubEnv('API_URL', 'http://api:3001');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('RF-04: obterResumo(periodo) manda ?periodo= para /dashboard/resumo, sem cache', async () => {
+    const fetchFalso = simularFetch({});
+    const { obterResumo } = await carregarConsultas();
+
+    await obterResumo('7d');
+
+    const { url, cache } = chamada(fetchFalso);
+    expect(url.pathname).toBe('/api/v1/dashboard/resumo');
+    expect(url.searchParams.get('periodo')).toBe('7d');
+    expect(cache).toBe('no-store');
+  });
+
+  it('RF-04: obterResumo() sem período (contador do menu) não manda ?periodo=', async () => {
+    const fetchFalso = simularFetch({});
+    const { obterResumo } = await carregarConsultas();
+
+    await obterResumo();
+
+    expect(chamada(fetchFalso).url.searchParams.has('periodo')).toBe(false);
+  });
+
+  it('RF-04: obterPainelGestao(periodo) chama /dashboard/gestao com ?periodo= e o token', async () => {
+    const fetchFalso = simularFetch({});
+    const { obterPainelGestao } = await carregarConsultas();
+
+    const resultado = await obterPainelGestao('30d');
+
+    const { url, cache, cabecalhos } = chamada(fetchFalso);
+    expect(url.pathname).toBe('/api/v1/dashboard/gestao');
+    expect(url.searchParams.get('periodo')).toBe('30d');
+    expect(cache).toBe('no-store');
+    expect(cabecalhos.get('authorization')).toBe(`Bearer ${TOKEN}`);
+    expect(resultado.ok).toBe(true);
+  });
+
+  it('RF-04: 403 em /dashboard/gestao volta como Consulta com ok: false, sem lançar', async () => {
+    simularFetch({ status: 403, code: 'SEM_PERMISSAO', requestId: 'req-403' }, 403);
+    const { obterPainelGestao } = await carregarConsultas();
+
+    await expect(obterPainelGestao('tudo')).resolves.toEqual({
+      ok: false,
+      status: 403,
+      requestId: 'req-403',
+    });
+  });
+});

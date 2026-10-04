@@ -44,6 +44,9 @@ const TOKENS_CLARO: Record<string, string> = {
   '--chart-alta-muted': '#B7C2D6',
   '--chart-media-muted': '#B7C2D6',
   '--chart-baixa-muted': '#B7C2D6',
+  // Entrada e saída do painel de gestão (Fase 3.5, PR 4C)
+  '--chart-serie': '#14213D',
+  '--chart-serie-muted': '#B7C2D6',
   '--destructive': '#B91C1C',
   '--destructive-foreground': '#FFFFFF',
   '--warning-bg': '#FEF3C7',
@@ -92,6 +95,8 @@ const TOKENS_ESCURO: Record<string, string> = {
   '--chart-alta-muted': '#FB923C',
   '--chart-media-muted': '#FACC15',
   '--chart-baixa-muted': '#A1A1AA',
+  '--chart-serie': '#A9BCEB',
+  '--chart-serie-muted': '#4F6AA8',
   '--destructive': '#F87171',
   '--destructive-foreground': '#1A0A0A',
   '--warning-bg': '#33260A',

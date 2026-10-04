@@ -84,6 +84,24 @@ describe('RF-02: lerFiltros (estado da lista na URL)', () => {
   });
 });
 
+describe('RF-02: filtro por analista (painel de gestão)', () => {
+  const CARLA_ID = 'c0000000-0000-4000-8000-000000000004';
+
+  it('RF-02: analista=<uuid> é lido e volta para a URL (linha do analista no painel)', () => {
+    const filtros = lerFiltros({ analista: CARLA_ID, status: 'EM_ANALISE' });
+
+    expect(filtros.analista).toBe(CARLA_ID);
+    expect(query(montarQuery(filtros))).toMatchObject({
+      analista: CARLA_ID,
+      status: 'EM_ANALISE',
+    });
+  });
+
+  it('RF-02: analista que não é "eu" nem UUID é ignorado', () => {
+    expect(lerFiltros({ analista: 'carla' }).analista).toBeUndefined();
+  });
+});
+
 describe('RF-02: montarQuery (filtros → URL)', () => {
   it('RF-02: com os padrões, a query fica vazia', () => {
     expect(montarQuery(lerFiltros({}))).toBe('');

@@ -46,6 +46,9 @@
   --chart-alta-muted: #b7c2d6;
   --chart-media-muted: #b7c2d6;
   --chart-baixa-muted: #b7c2d6;
+  /* Entrada e saída do painel de gestão */
+  --chart-serie: #14213d;
+  --chart-serie-muted: #b7c2d6;
   --destructive: #b91c1c;
   --destructive-foreground: #ffffff;
   --warning-bg: #fef3c7;
@@ -105,6 +108,8 @@
   --chart-alta-muted: #fb923c;
   --chart-media-muted: #facc15;
   --chart-baixa-muted: #a1a1aa;
+  --chart-serie: #a9bceb;
+  --chart-serie-muted: #4f6aa8;
   --destructive: #f87171;
   --destructive-foreground: #1a0a0a;
   --warning-bg: #33260a;
@@ -154,6 +159,8 @@
   --color-chart-alta-muted: var(--chart-alta-muted);
   --color-chart-media-muted: var(--chart-media-muted);
   --color-chart-baixa-muted: var(--chart-baixa-muted);
+  --color-chart-serie: var(--chart-serie);
+  --color-chart-serie-muted: var(--chart-serie-muted);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-warning-bg: var(--warning-bg);
