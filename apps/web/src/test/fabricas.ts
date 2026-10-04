@@ -444,3 +444,33 @@ export function gestaoHoje(parcial: Partial<Gestao> = {}): Gestao {
     ...parcial,
   });
 }
+
+/** Auditoria do histórico (RN-10): tipos do contrato OpenAPI. */
+export type MotivoDivergencia = Schemas['MotivoDivergencia'];
+export type DivergenciaIntegridade = Schemas['DivergenciaHistorico'];
+export type Integridade = Schemas['IntegridadeDto'];
+
+export function divergencia(parcial: Partial<DivergenciaIntegridade> = {}): DivergenciaIntegridade {
+  return {
+    solicitacao: { id: 'c0000000-0000-4000-8000-000000000012', codigo: 'SOL-000012' },
+    eventoId: 'e0000000-0000-4000-8000-000000000101',
+    tipo: 'APROVADA',
+    criadoEm: '2026-10-02T17:30:00.000Z',
+    motivo: 'CONTEUDO_ALTERADO',
+    ...parcial,
+  };
+}
+
+/** Resultado da verificação: por padrão, íntegro (412 eventos de 40 solicitações, 09:42 em SP). */
+export function integridade(parcial: Partial<Integridade> = {}): Integridade {
+  const divergencias = parcial.divergencias ?? [];
+  return {
+    integro: divergencias.length === 0,
+    eventosVerificados: 412,
+    solicitacoesVerificadas: 40,
+    totalDivergencias: divergencias.length,
+    divergencias,
+    verificadoEm: '2026-10-04T12:42:00.000Z',
+    ...parcial,
+  };
+}

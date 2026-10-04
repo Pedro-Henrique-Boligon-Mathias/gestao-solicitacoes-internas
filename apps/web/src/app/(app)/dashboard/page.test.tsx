@@ -81,6 +81,10 @@ const acoes = vi.hoisted(() => ({
 }));
 vi.mock('@/features/solicitacoes/actions', () => acoes);
 
+/** Card "Integridade do histórico" (RN-10, só Admin): a action da auditoria, simulada. */
+const auditoria = vi.hoisted(() => ({ verificarIntegridade: vi.fn() }));
+vi.mock('@/features/auditoria/actions', () => auditoria);
+
 vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), dismiss: vi.fn() }),
   Toaster: () => null,
@@ -821,4 +825,21 @@ describe('RF-04/ADR-012: dashboard carregado em blocos', () => {
   it('RF-04: a rota não tem loading.tsx próprio (ele seguraria o cabeçalho; os esqueletos são por bloco)', () => {
     expect(existsSync(path.join(import.meta.dirname, 'loading.tsx'))).toBe(false);
   });
+});
+
+describe('RN-10: "Integridade do histórico" é só do painel do admin', () => {
+  it.each([
+    ['solicitante', ANA],
+    ['analista', CARLA],
+  ])(
+    'RN-10: o dashboard do %s não tem o card nem o botão "Verificar integridade"',
+    async (_, usuario) => {
+      await renderizar(usuario);
+
+      expect(screen.queryByRole('region', { name: 'Integridade do histórico' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Verificar integridade' })).toBeNull();
+      expect(screen.queryByText('Integridade do histórico')).toBeNull();
+      expect(auditoria.verificarIntegridade).not.toHaveBeenCalled();
+    },
+  );
 });
