@@ -46,7 +46,7 @@ const TOKENS_CLARO: Record<string, string> = {
   '--chart-baixa-muted': '#B7C2D6',
   // Entrada e saída do painel de gestão (Fase 3.5, PR 4C)
   '--chart-serie': '#14213D',
-  '--chart-serie-muted': '#B7C2D6',
+  '--chart-serie-muted': '#7A89A8',
   '--destructive': '#B91C1C',
   '--destructive-foreground': '#FFFFFF',
   '--warning-bg': '#FEF3C7',
@@ -185,4 +185,28 @@ describe('ADR-013: tokens de cor, raio e fonte em globals.css', () => {
   it('ADR-013: os tokens verdes provisórios (marca-*) foram removidos', () => {
     expect(css).not.toMatch(/--color-marca-/);
   });
+});
+
+/** Contraste WCAG entre duas cores hexadecimais (#rrggbb). */
+function contraste(a: string, b: string): number {
+  const luminancia = (hex: string) => {
+    const [r, g, bl] = [1, 3, 5].map((i) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * bl!;
+  };
+  const [maior, menor] = [luminancia(a), luminancia(b)].sort((x, y) => y - x);
+  return (maior! + 0.05) / (menor! + 0.05);
+}
+
+describe('ADR-013: contraste da hachura de Entrada e saída no tema claro', () => {
+  const hachura = raiz.get('--chart-serie-muted') ?? '';
+
+  it.each(['--card', '--muted', '--chart-serie'])(
+    'ADR-013: --chart-serie-muted tem contraste de pelo menos 3:1 com %s (WCAG 1.4.11)',
+    (fundo) => {
+      expect(contraste(hachura, raiz.get(fundo) ?? '')).toBeGreaterThanOrEqual(3);
+    },
+  );
 });

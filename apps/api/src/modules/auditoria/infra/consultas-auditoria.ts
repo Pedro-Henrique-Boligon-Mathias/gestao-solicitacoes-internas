@@ -6,6 +6,7 @@ import { LIMITE_DIVERGENCIAS, type MotivoDivergencia } from '../domain/integrida
 export interface LinhaDivergencia {
   solicitacao_id: string;
   codigo: number;
+  excluida: boolean;
   evento_id: string;
   tipo: TipoEvento;
   /** ISO 8601 em UTC, truncado em milissegundos. */
@@ -50,7 +51,8 @@ export class ConsultasAuditoria {
           FROM eventos e
       ),
       primeiras AS (
-        SELECT c.solicitacao_id, s.codigo, c.id AS evento_id, c.tipo, c.motivo,
+        SELECT c.solicitacao_id, s.codigo, s.excluido_em IS NOT NULL AS excluida,
+               c.id AS evento_id, c.tipo, c.motivo,
                c.criado_em AS instante
           FROM classificados c
           JOIN solicitacoes s ON s.id = c.solicitacao_id
@@ -63,7 +65,7 @@ export class ConsultasAuditoria {
              (SELECT count(*)::int FROM classificados WHERE motivo IS NOT NULL) AS total_divergencias,
              coalesce(
                (SELECT json_agg(json_build_object(
-                   'solicitacao_id', p.solicitacao_id, 'codigo', p.codigo,
+                   'solicitacao_id', p.solicitacao_id, 'codigo', p.codigo, 'excluida', p.excluida,
                    'evento_id', p.evento_id, 'tipo', p.tipo, 'motivo', p.motivo,
                    'criado_em',
                    to_char(p.instante AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')

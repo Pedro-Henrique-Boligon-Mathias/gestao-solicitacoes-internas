@@ -452,7 +452,11 @@ export type Integridade = Schemas['IntegridadeDto'];
 
 export function divergencia(parcial: Partial<DivergenciaIntegridade> = {}): DivergenciaIntegridade {
   return {
-    solicitacao: { id: 'c0000000-0000-4000-8000-000000000012', codigo: 'SOL-000012' },
+    solicitacao: {
+      id: 'c0000000-0000-4000-8000-000000000012',
+      codigo: 'SOL-000012',
+      excluida: false,
+    },
     eventoId: 'e0000000-0000-4000-8000-000000000101',
     tipo: 'APROVADA',
     criadoEm: '2026-10-02T17:30:00.000Z',

@@ -21,7 +21,11 @@ export class AuditoriaService {
       solicitacoesVerificadas: linha.solicitacoes,
       totalDivergencias: linha.total_divergencias,
       divergencias: linha.divergencias.map((item) => ({
-        solicitacao: { id: item.solicitacao_id, codigo: formatarCodigo(item.codigo) },
+        solicitacao: {
+          id: item.solicitacao_id,
+          codigo: formatarCodigo(item.codigo),
+          excluida: item.excluida,
+        },
         eventoId: item.evento_id,
         tipo: item.tipo,
         criadoEm: item.criado_em,

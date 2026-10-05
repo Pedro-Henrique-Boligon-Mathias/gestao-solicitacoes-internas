@@ -351,6 +351,8 @@ export interface components {
             solicitacao: {
                 /** @example SOL-000042 */
                 codigo: string;
+                /** @description true quando a solicitação foi excluída logicamente (o detalhe não abre mais) */
+                excluida: boolean;
                 /**
                  * Format: uuid
                  * @example 0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10

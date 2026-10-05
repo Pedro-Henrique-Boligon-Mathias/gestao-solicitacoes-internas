@@ -11,6 +11,9 @@ export const divergenciaSchema = z
     solicitacao: z.object({
       id: z.uuid().meta({ example: EXEMPLO.solicitacaoId }),
       codigo: z.string().meta({ example: EXEMPLO.codigo }),
+      excluida: z
+        .boolean()
+        .describe('true quando a solicitação foi excluída logicamente (o detalhe não abre mais)'),
     }),
     eventoId: z.uuid().meta({ example: EXEMPLO.historicoId }),
     tipo: eventoHistoricoSchema.shape.tipo,
