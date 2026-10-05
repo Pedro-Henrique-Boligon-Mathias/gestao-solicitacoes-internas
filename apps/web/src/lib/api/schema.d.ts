@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auditoria/integridade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recalcula a corrente de hash do histórico de todas as solicitações e aponta as divergências */
+        get: operations["integridadeHistorico"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -319,6 +336,33 @@ export interface components {
              */
             resultado: "APROVADA" | "REJEITADA";
         };
+        DivergenciaHistorico: {
+            /**
+             * Format: date-time
+             * @example 2026-10-03T10:12:00.000Z
+             */
+            criadoEm: string;
+            /**
+             * Format: uuid
+             * @example c7e1a9d3-5b2f-4c86-9e0a-4d6f8b2c1e57
+             */
+            eventoId: string;
+            motivo: components["schemas"]["MotivoDivergencia"];
+            solicitacao: {
+                /** @example SOL-000042 */
+                codigo: string;
+                /**
+                 * Format: uuid
+                 * @example 0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10
+                 */
+                id: string;
+            };
+            /**
+             * @example APROVADA
+             * @enum {string}
+             */
+            tipo: "CRIADA" | "EDITADA" | "ANALISE_INICIADA" | "APROVADA" | "REJEITADA" | "REABERTA" | "EXCLUIDA";
+        };
         /** @description Só título, descrição e prioridade; o status muda pelos comandos */
         EditarSolicitacaoDto: {
             /**
@@ -573,6 +617,26 @@ export interface components {
          * @enum {string}
          */
         Granularidade: "dia" | "semana" | "mes";
+        IntegridadeDto: {
+            /** @description Até 20, da mais antiga para a mais recente */
+            divergencias: components["schemas"]["DivergenciaHistorico"][];
+            /** @example 412 */
+            eventosVerificados: number;
+            /** @description true quando nenhuma divergência foi encontrada */
+            integro: boolean;
+            /**
+             * @description Inclui solicitações excluídas logicamente
+             * @example 40
+             */
+            solicitacoesVerificadas: number;
+            /** @example 1 */
+            totalDivergencias: number;
+            /**
+             * Format: date-time
+             * @example 2026-10-04T10:15:00.000Z
+             */
+            verificadoEm: string;
+        };
         LoginDto: {
             /**
              * @description Aceita maiúsculas e espaços nas pontas (normalizado antes da busca)
@@ -582,6 +646,12 @@ export interface components {
             /** @example Demo@2026 */
             senha: string;
         };
+        /**
+         * @description CONTEUDO_ALTERADO: o conteúdo do evento não confere com o hash gravado; CORRENTE_QUEBRADA: o evento não aponta para o anterior (evento apagado ou inserido no meio)
+         * @example CONTEUDO_ALTERADO
+         * @enum {string}
+         */
+        MotivoDivergencia: "CONTEUDO_ALTERADO" | "CORRENTE_QUEBRADA";
         PaginaSolicitacoesDto: {
             data: {
                 /**
@@ -1175,6 +1245,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AreaDto"][];
+                };
+            };
+        };
+    };
+    integridadeHistorico: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resultado da verificação */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegridadeDto"];
+                };
+            };
+            /** @description Sem token, token inválido ou sessão encerrada (NAO_AUTENTICADO) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Não é administrador (ACESSO_NEGADO) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

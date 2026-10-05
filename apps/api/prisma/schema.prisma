@@ -160,6 +160,10 @@ model SolicitacaoHistorico {
   // tempo segue a ordem em que os eventos foram gravados. Microssegundos para não empatar eventos
   // gravados no mesmo milissegundo
   criadoEm       DateTime           @default(dbgenerated("clock_timestamp()")) @map("criado_em") @db.Timestamptz(6)
+  // Corrente de hash por solicitação (RN-10, auditoria): o trigger BEFORE INSERT sempre calcula os
+  // dois valores; o default (a semente) só existe para o create não exigir os campos
+  hashAnterior   String             @default("0000000000000000000000000000000000000000000000000000000000000000") @map("hash_anterior") @db.Char(64)
+  hash           String             @default("0000000000000000000000000000000000000000000000000000000000000000") @db.Char(64)
 
   solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id], onDelete: Restrict)
   autor       Usuario     @relation(fields: [autorId], references: [id], onDelete: Restrict)

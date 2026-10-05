@@ -58,6 +58,10 @@ vi.mock('@/lib/api/autenticado', () => autenticado);
 
 const acoes = vi.hoisted(() => ({ iniciarAnalise: vi.fn(), reprocessarIntegracao: vi.fn() }));
 vi.mock('@/features/solicitacoes/actions', () => acoes);
+
+/** Card "Integridade do histórico" (RN-10): a action da auditoria, simulada. */
+const auditoria = vi.hoisted(() => ({ verificarIntegridade: vi.fn() }));
+vi.mock('@/features/auditoria/actions', () => auditoria);
 vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), dismiss: vi.fn() }),
   Toaster: () => null,
@@ -283,5 +287,40 @@ describe('RF-04/ADR-012: painel do admin carregado em blocos', () => {
     expect(screen.getByText('req-resumo')).toBeInTheDocument();
     expect(titulo(/^Entrada e saída/)).toBeInTheDocument();
     expect(titulo(/^Integrações com falha/)).toBeInTheDocument();
+  });
+});
+
+describe('RN-10: card "Integridade do histórico" no painel do admin', () => {
+  const cardIntegridade = () => screen.queryByRole('region', { name: 'Integridade do histórico' });
+
+  it('RN-10: o card aparece no painel do admin, com o botão "Verificar integridade"', async () => {
+    await renderizar();
+
+    const card = cardIntegridade();
+    expect(card, 'região "Integridade do histórico"').not.toBeNull();
+    expect(within(card!).getByRole('button', { name: 'Verificar integridade' })).toBeEnabled();
+  });
+
+  it('RN-10: o card vem depois de "Integrações com falha" (ordem do DOM)', async () => {
+    await renderizar();
+
+    const card = cardIntegridade();
+    expect(card).not.toBeNull();
+    const posicao = titulo(/^Integrações com falha/).compareDocumentPosition(card!);
+    expect(posicao & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('RN-10: o card não chama a API ao abrir o painel (só no clique)', async () => {
+    await renderizar();
+
+    expect(cardIntegridade()).not.toBeNull();
+    expect(auditoria.verificarIntegridade).not.toHaveBeenCalled();
+  });
+
+  it('RN-10: o card não depende do painel de gestão: aparece mesmo com o painel com falha', async () => {
+    await renderizar({ gestao: falha('req-painel') });
+
+    expect(screen.getByText('req-painel')).toBeInTheDocument();
+    expect(cardIntegridade()).not.toBeNull();
   });
 });
