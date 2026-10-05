@@ -78,7 +78,7 @@ describe('RN-10: auditoria do histórico · adulteração detectada', () => {
     expect(depois.totalDivergencias).toBe(antes.totalDivergencias + 1);
     expect(divergenciasDe(depois, solicitacao.id)).toEqual([
       {
-        solicitacao: { id: solicitacao.id, codigo: solicitacao.codigo },
+        solicitacao: { id: solicitacao.id, codigo: solicitacao.codigo, excluida: false },
         eventoId: aprovado.id,
         tipo: 'APROVADA',
         criadoEm: expect.stringMatching(ISO_UTC),
@@ -106,7 +106,7 @@ describe('RN-10: auditoria do histórico · adulteração detectada', () => {
     expect(depois.totalDivergencias).toBe(antes.totalDivergencias + 1);
     expect(divergenciasDe(depois, solicitacao.id)).toEqual([
       {
-        solicitacao: { id: solicitacao.id, codigo: solicitacao.codigo },
+        solicitacao: { id: solicitacao.id, codigo: solicitacao.codigo, excluida: false },
         eventoId: seguinte.id,
         tipo: seguinte.tipo,
         criadoEm: expect.stringMatching(ISO_UTC),
@@ -116,7 +116,7 @@ describe('RN-10: auditoria do histórico · adulteração detectada', () => {
     expect(depois.eventosVerificados).toBe(antes.eventosVerificados - 1);
   });
 
-  it('RN-09 / RN-10: solicitação excluída logicamente entra na verificação', async () => {
+  it('RN-09 / RN-10: solicitação excluída logicamente entra na verificação, marcada como excluida', async () => {
     const criada = await criarSolicitacao(app, ana);
     criadasNoTeste.push(criada.id);
     await api(app, ana).delete(`/solicitacoes/${criada.id}`).expect(204);
@@ -143,7 +143,7 @@ describe('RN-10: auditoria do histórico · adulteração detectada', () => {
     expect(depois.totalDivergencias).toBe(antes.totalDivergencias + 1);
     expect(divergenciasDe(depois, criada.id)).toEqual([
       expect.objectContaining({
-        solicitacao: { id: criada.id, codigo: criada.codigo },
+        solicitacao: { id: criada.id, codigo: criada.codigo, excluida: true },
         eventoId: eventos[0]!.id,
         tipo: 'CRIADA',
         motivo: 'CONTEUDO_ALTERADO',

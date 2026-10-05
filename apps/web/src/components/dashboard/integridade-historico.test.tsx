@@ -22,7 +22,11 @@ type Retorno =
 
 const SOL_12 = divergencia();
 const SOL_7 = divergencia({
-  solicitacao: { id: 'c0000000-0000-4000-8000-000000000007', codigo: 'SOL-000007' },
+  solicitacao: {
+    id: 'c0000000-0000-4000-8000-000000000007',
+    codigo: 'SOL-000007',
+    excluida: false,
+  },
   eventoId: 'e0000000-0000-4000-8000-000000000102',
   tipo: 'REABERTA',
   criadoEm: '2026-10-03T11:05:00.000Z',
@@ -153,6 +157,36 @@ describe('RN-10: card "Integridade do histórico"', () => {
     expect(segunda).toHaveTextContent('evento apagado ou inserido');
   });
 
+  it('RN-12: divergência de solicitação excluída mostra o código sem link e o rótulo "excluída"', async () => {
+    const excluida = divergencia({
+      solicitacao: {
+        id: 'c0000000-0000-4000-8000-000000000031',
+        codigo: 'SOL-000031',
+        excluida: true,
+      },
+      eventoId: 'e0000000-0000-4000-8000-000000000131',
+    });
+    const { regiao } = await verificar({
+      ok: true,
+      integridade: integridade({ integro: false, totalDivergencias: 1, divergencias: [excluida] }),
+    });
+
+    const [linha] = await within(regiao).findAllByRole('listitem');
+    expect(linha).toHaveTextContent('SOL-000031');
+    expect(linha).toHaveTextContent('excluída');
+    expect(within(linha!).queryByRole('link')).toBeNull();
+  });
+
+  it('RN-10: o anúncio traz só o resumo, sem a lista de divergências', async () => {
+    const { regiao } = await verificar({ ok: true, integridade: ADULTERADO });
+
+    await waitFor(() => expect(within(regiao).getAllByRole('listitem')).toHaveLength(2));
+    const resultado = anuncio(regiao);
+    expect(resultado).toHaveTextContent('Adulteração detectada');
+    expect(within(resultado).queryAllByRole('listitem')).toHaveLength(0);
+    expect(resultado).not.toHaveTextContent('SOL-000012');
+  });
+
   it('RN-10: os motivos aparecem em português, nunca o código da API', async () => {
     const { regiao } = await verificar({ ok: true, integridade: ADULTERADO });
 
@@ -167,6 +201,7 @@ describe('RN-10: card "Integridade do histórico"', () => {
         solicitacao: {
           id: `c0000000-0000-4000-8000-0000000002${String(i).padStart(2, '0')}`,
           codigo: `SOL-0002${String(i).padStart(2, '0')}`,
+          excluida: false,
         },
         eventoId: `e0000000-0000-4000-8000-0000000002${String(i).padStart(2, '0')}`,
       }),

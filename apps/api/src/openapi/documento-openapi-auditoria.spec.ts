@@ -97,12 +97,15 @@ describe('RN-10: contrato OpenAPI da auditoria do histórico', () => {
     expect(campo(corpo, 'divergencias')?.maxItems).toBe(20);
   });
 
-  it('RN-10: divergência com solicitacao {id, codigo}, eventoId, tipo, criadoEm e motivo', () => {
+  it('RN-10: divergência com solicitacao {id, codigo, excluida}, eventoId, tipo, criadoEm e motivo', () => {
     const divergencia = resolver(campo(resposta(), 'divergencias')?.items);
     const campos = ['criadoEm', 'eventoId', 'motivo', 'solicitacao', 'tipo'];
     expect(chaves(divergencia)).toEqual(campos);
     expect(divergencia?.required?.sort()).toEqual(campos);
-    expect(chaves(campo(divergencia, 'solicitacao'))).toEqual(['codigo', 'id']);
+    const solicitacao = resolver(campo(divergencia, 'solicitacao'));
+    expect(chaves(solicitacao)).toEqual(['codigo', 'excluida', 'id']);
+    expect(solicitacao?.required?.sort()).toEqual(['codigo', 'excluida', 'id']);
+    expect(campo(solicitacao, 'excluida')?.type).toBe('boolean');
     expect(campo(divergencia, 'eventoId')?.format).toBe('uuid');
     expect(campo(divergencia, 'criadoEm')?.format).toBe('date-time');
     expect(campo(divergencia, 'tipo')?.enum?.sort()).toEqual(

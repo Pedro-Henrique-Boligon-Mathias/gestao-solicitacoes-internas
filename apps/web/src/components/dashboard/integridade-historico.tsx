@@ -6,15 +6,15 @@ import { Button } from '@/components/ui/button';
 import { verificarIntegridade } from '@/features/auditoria/actions';
 import type { ResultadoIntegridade } from '@/features/auditoria/tipos';
 import { cn } from '@/lib/utils';
-import { ResultadoVerificacao } from './integridade-resultado';
+import { DivergenciasVerificacao, ResumoVerificacao } from './integridade-resultado';
 
 const ID_TITULO = 'integridade-historico-titulo';
 
 /**
  * "Integridade do histórico" do painel do Admin (RN-10, doc 16): o botão chama a Server Action
  * que recalcula a corrente de hashes no banco. Nada é chamado ao abrir o painel; o resultado
- * (íntegro, adulteração com a lista das divergências ou erro com requestId) é anunciado num
- * role="status".
+ * (íntegro, adulteração ou erro com requestId) é anunciado num role="status"; a lista das
+ * divergências fica fora do anúncio, para o leitor de tela não ler as 20 linhas.
  */
 export function IntegridadeHistorico() {
   const [resultado, setResultado] = useState<ResultadoIntegridade | null>(null);
@@ -75,16 +75,19 @@ export function IntegridadeHistorico() {
         </Button>
       </div>
 
-      <div role="status" className="min-w-0">
-        {resultado ? (
-          <ResultadoVerificacao resultado={resultado} />
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            Cada evento guarda um hash encadeado ao evento anterior da mesma solicitação. A
-            verificação recalcula a corrente inteira e aponta qualquer evento alterado, apagado ou
-            inserido direto no banco.
-          </p>
-        )}
+      <div className="flex min-w-0 flex-col gap-3">
+        <div role="status" className="min-w-0">
+          {resultado ? (
+            <ResumoVerificacao resultado={resultado} />
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              Cada evento guarda um hash encadeado ao evento anterior da mesma solicitação. A
+              verificação recalcula a corrente inteira e aponta qualquer evento alterado, apagado ou
+              inserido direto no banco.
+            </p>
+          )}
+        </div>
+        {resultado ? <DivergenciasVerificacao resultado={resultado} /> : null}
       </div>
     </section>
   );

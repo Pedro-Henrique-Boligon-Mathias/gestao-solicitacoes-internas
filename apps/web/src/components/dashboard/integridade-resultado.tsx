@@ -20,8 +20,11 @@ function eventosVerificados(total: number): string {
   return `${numero.format(total)} ${total === 1 ? 'evento verificado' : 'eventos verificados'}`;
 }
 
-/** Conteúdo do anúncio depois de verificar: íntegro, adulteração ou erro com requestId. */
-export function ResultadoVerificacao({ resultado }: { resultado: ResultadoIntegridade }) {
+/**
+ * Resumo depois de verificar, que vai no anúncio (role="status"): íntegro, adulteração ou erro
+ * com requestId. A lista de divergências fica fora do anúncio (DivergenciasVerificacao).
+ */
+export function ResumoVerificacao({ resultado }: { resultado: ResultadoIntegridade }) {
   if (!resultado.ok) {
     return (
       <div className="flex flex-col gap-1 text-sm">
@@ -36,10 +39,15 @@ export function ResultadoVerificacao({ resultado }: { resultado: ResultadoIntegr
     );
   }
   const { integridade } = resultado;
-  return integridade.integro ? (
-    <ResumoIntegro integridade={integridade} />
-  ) : (
-    <ResumoAdulterado integridade={integridade} />
+  return (
+    <div className="flex flex-col gap-0.5">
+      {integridade.integro ? (
+        <p className="text-status-aprovada-fg font-semibold">Histórico íntegro</p>
+      ) : (
+        <p className="text-destructive font-semibold">Adulteração detectada</p>
+      )}
+      <Verificacao integridade={integridade} />
+    </div>
   );
 }
 
@@ -54,23 +62,13 @@ function Verificacao({ integridade }: { integridade: Integridade }) {
   );
 }
 
-function ResumoIntegro({ integridade }: { integridade: Integridade }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <p className="text-status-aprovada-fg font-semibold">Histórico íntegro</p>
-      <Verificacao integridade={integridade} />
-    </div>
-  );
-}
-
-function ResumoAdulterado({ integridade }: { integridade: Integridade }) {
+/** Lista das divergências (até 20) e "e mais N"; nada quando o histórico está íntegro. */
+export function DivergenciasVerificacao({ resultado }: { resultado: ResultadoIntegridade }) {
+  if (!resultado.ok || resultado.integridade.integro) return null;
+  const { integridade } = resultado;
   const restantes = integridade.totalDivergencias - integridade.divergencias.length;
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-0.5">
-        <p className="text-destructive font-semibold">Adulteração detectada</p>
-        <Verificacao integridade={integridade} />
-      </div>
       <ul className="flex flex-col">
         {integridade.divergencias.map((d) => (
           <LinhaDivergencia key={d.eventoId} divergencia={d} />
@@ -88,12 +86,7 @@ function ResumoAdulterado({ integridade }: { integridade: Integridade }) {
 function LinhaDivergencia({ divergencia: d }: { divergencia: DivergenciaIntegridade }) {
   return (
     <li className="border-border grid grid-cols-[96px_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-b py-2.5 text-sm last:border-b-0 max-[760px]:grid-cols-[minmax(0,1fr)_auto] max-[760px]:gap-x-3 max-[760px]:gap-y-0.5">
-      <Link
-        href={`/solicitacoes/${d.solicitacao.id}`}
-        className="text-muted-foreground hover:text-foreground w-fit rounded-sm font-mono text-[12.5px] max-[760px]:inline-flex max-[760px]:min-h-11 max-[760px]:items-center"
-      >
-        {d.solicitacao.codigo}
-      </Link>
+      <Codigo solicitacao={d.solicitacao} />
       <span className="min-w-0">{ROTULO_EVENTO[d.tipo] ?? d.tipo}</span>
       <time
         dateTime={d.criadoEm}
@@ -105,5 +98,29 @@ function LinhaDivergencia({ divergencia: d }: { divergencia: DivergenciaIntegrid
         {ROTULO_MOTIVO[d.motivo] ?? d.motivo}
       </span>
     </li>
+  );
+}
+
+const CLASSE_CODIGO = 'text-muted-foreground w-fit rounded-sm font-mono text-[12.5px]';
+
+/** Código com link para o detalhe; a excluída não abre mais (RN-12), então vai sem link. */
+function Codigo({ solicitacao }: { solicitacao: DivergenciaIntegridade['solicitacao'] }) {
+  if (solicitacao.excluida) {
+    return (
+      <span className={`${CLASSE_CODIGO} flex flex-col leading-tight`}>
+        {solicitacao.codigo}
+        <span className="font-sans text-[11px]">
+          <span className="sr-only">, </span>excluída
+        </span>
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={`/solicitacoes/${solicitacao.id}`}
+      className={`${CLASSE_CODIGO} hover:text-foreground max-[760px]:inline-flex max-[760px]:min-h-11 max-[760px]:items-center`}
+    >
+      {solicitacao.codigo}
+    </Link>
   );
 }

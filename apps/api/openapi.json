@@ -102,6 +102,10 @@
                 "example": "SOL-000042",
                 "type": "string"
               },
+              "excluida": {
+                "description": "true quando a solicitação foi excluída logicamente (o detalhe não abre mais)",
+                "type": "boolean"
+              },
               "id": {
                 "example": "0b6c8f9e-3d2a-4f7b-9c1e-5a8d2f4b6c10",
                 "format": "uuid",
@@ -111,7 +115,8 @@
             },
             "required": [
               "id",
-              "codigo"
+              "codigo",
+              "excluida"
             ],
             "type": "object"
           },
