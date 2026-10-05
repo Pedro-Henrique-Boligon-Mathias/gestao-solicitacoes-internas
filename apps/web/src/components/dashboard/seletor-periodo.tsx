@@ -3,7 +3,7 @@
 import { CalendarDays, Check, ChevronDown } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Popover as PopoverPrimitivo } from 'radix-ui';
-import { useState, useSyncExternalStore, type ComponentProps } from 'react';
+import { useState, useSyncExternalStore, type ComponentProps, type KeyboardEvent } from 'react';
 import { Dialog, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { FolhaContent } from '@/components/ui/folha';
 import {
@@ -51,10 +51,37 @@ function Gatilho({ periodo, ...props }: { periodo: Periodo } & ComponentProps<'b
   );
 }
 
+/** Tecla → índice da opção que recebe o foco (em círculo), ou null se a tecla não navega. */
+function proximoIndice(tecla: string, atual: number, total: number): number | null {
+  if (tecla === 'ArrowDown' || tecla === 'ArrowRight') return (atual + 1) % total;
+  if (tecla === 'ArrowUp' || tecla === 'ArrowLeft') return atual <= 0 ? total - 1 : atual - 1;
+  if (tecla === 'Home') return 0;
+  if (tecla === 'End') return total - 1;
+  return null;
+}
+
+/**
+ * Opções em radiogroup com foco itinerante: só a marcada entra no Tab e recebe o foco ao abrir;
+ * as setas, Home e End movem o foco sem escolher (escolher navega e fecha); Enter e Espaço
+ * escolhem a opção em foco.
+ */
 function Opcoes({ atual, aoEscolher }: { atual: Periodo; aoEscolher: (p: Periodo) => void }) {
   const agora = new Date();
+
+  function navegar(evento: KeyboardEvent<HTMLDivElement>) {
+    const opcoes = [...evento.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')];
+    const indice = proximoIndice(
+      evento.key,
+      opcoes.indexOf(evento.target as HTMLElement),
+      opcoes.length,
+    );
+    if (indice === null) return;
+    evento.preventDefault();
+    opcoes[indice]?.focus();
+  }
+
   return (
-    <div role="radiogroup" aria-label="Período" className="flex flex-col">
+    <div role="radiogroup" aria-label="Período" className="flex flex-col" onKeyDown={navegar}>
       {PERIODOS.map((p) => {
         const marcado = p === atual;
         return (
@@ -63,6 +90,7 @@ function Opcoes({ atual, aoEscolher }: { atual: Periodo; aoEscolher: (p: Periodo
             type="button"
             role="radio"
             aria-checked={marcado}
+            tabIndex={marcado ? 0 : -1}
             onClick={() => aoEscolher(p)}
             className={cn(
               'text-foreground hover:bg-muted focus-visible:bg-muted flex h-11 w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 text-left text-sm outline-none',

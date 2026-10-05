@@ -178,3 +178,75 @@ describe('RF-04: seletor de período', () => {
     expect(lerUrl(ultimoDestino()).params.get('periodo')).toBe('30d');
   });
 });
+
+describe('RF-04: teclado no seletor de período', () => {
+  const opcao = (painel: HTMLElement, nome: RegExp) =>
+    within(painel).getByRole('radio', { name: nome });
+
+  it('RF-04: ao abrir, o foco vai para a opção marcada, a única que entra no Tab', async () => {
+    render(<SeletorPeriodo periodo="7d" />);
+    const { painel } = await abrir('Últimos 7 dias');
+
+    const marcada = opcao(painel, /^Últimos 7 dias/);
+    await waitFor(() => expect(marcada).toHaveFocus());
+    for (const radio of within(painel).getAllByRole('radio')) {
+      expect(radio).toHaveAttribute('tabindex', radio === marcada ? '0' : '-1');
+    }
+  });
+
+  it('RF-04: ↓ e ↑ movem o foco em círculo, sem escolher', async () => {
+    render(<SeletorPeriodo periodo="tudo" />);
+    const { pessoa, painel } = await abrir();
+    await waitFor(() => expect(opcao(painel, /^Tudo/)).toHaveFocus());
+
+    await pessoa.keyboard('{ArrowDown}');
+    expect(opcao(painel, /^Hoje/)).toHaveFocus();
+    await pessoa.keyboard('{ArrowDown}');
+    expect(opcao(painel, /^Últimos 7 dias/)).toHaveFocus();
+    await pessoa.keyboard('{ArrowUp}{ArrowUp}');
+    expect(opcao(painel, /^Tudo/)).toHaveFocus();
+    await pessoa.keyboard('{ArrowRight}');
+    expect(opcao(painel, /^Hoje/)).toHaveFocus();
+    await pessoa.keyboard('{ArrowLeft}');
+    expect(opcao(painel, /^Tudo/)).toHaveFocus();
+
+    expect(roteador.push).not.toHaveBeenCalled();
+    expect(roteador.replace).not.toHaveBeenCalled();
+    expect(opcao(painel, /^Tudo/)).toBeChecked();
+  });
+
+  it('RF-04: Home e End vão à primeira e à última opção', async () => {
+    render(<SeletorPeriodo periodo="7d" />);
+    const { pessoa, painel } = await abrir('Últimos 7 dias');
+    await waitFor(() => expect(opcao(painel, /^Últimos 7 dias/)).toHaveFocus());
+
+    await pessoa.keyboard('{End}');
+    expect(opcao(painel, /^Tudo/)).toHaveFocus();
+    await pessoa.keyboard('{Home}');
+    expect(opcao(painel, /^Hoje/)).toHaveFocus();
+  });
+
+  it.each([
+    ['Enter', '{Enter}'],
+    ['Espaço', ' '],
+  ])('RF-04: %s escolhe a opção em foco', async (_nome, tecla) => {
+    render(<SeletorPeriodo periodo="tudo" />);
+    const { pessoa, painel } = await abrir();
+    await waitFor(() => expect(opcao(painel, /^Tudo/)).toHaveFocus());
+
+    await pessoa.keyboard('{ArrowDown}{ArrowDown}');
+    await pessoa.keyboard(tecla);
+
+    expect(lerUrl(ultimoDestino()).params.get('periodo')).toBe('7d');
+  });
+
+  it('RF-04: no celular, as setas também movem o foco na folha', async () => {
+    simularTela(true);
+    render(<SeletorPeriodo periodo="tudo" />);
+    const { pessoa, painel } = await abrir();
+    await waitFor(() => expect(opcao(painel, /^Tudo/)).toHaveFocus());
+
+    await pessoa.keyboard('{ArrowDown}');
+    expect(opcao(painel, /^Hoje/)).toHaveFocus();
+  });
+});
